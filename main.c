@@ -4,65 +4,13 @@
 #include<stdint.h>
 #include<string.h>
 
-char* convertToHex(char *utf8_char){
-	printf("%d function to convert utf8 char to hexcode\n",__LINE__);
-	int i,len;
-	char* utf8;
-	len = strlen(utf8_char);
-	// each byte is represented by two hex digits, plus one for the null terminator
-	utf8 = (char*)malloc(sizeof(char) * (len * 2 + 1));
-	for(i = 0; i < len; i++){
-		// each hex digit is represented by two characters, plus one for the null terminator
-		char* hex = (char*)malloc(sizeof(char) * 3);
-		// convert the byte to a two-digit hex string
-		sprintf(hex, "%02x", (unsigned char)utf8_char[i]);
-		// append the hex string to the output string
-		strcat(utf8, hex);
-		free(hex);
-	}
-	return utf8;
-}
 
-
-char* hexToUnicode(char* s){
-	int len = strlen(s)/2;
-	unsigned char* bytes = (unsigned char*)malloc(sizeof(unsigned char) * len);
-	int i, j, numBytes;
-	unsigned int codePoint;
-	char* unicode = (char*)malloc(sizeof(char) * (len + 1));
-	// Convert hexadecimal string to byte array
-	for (i = 0; i < len; i++){
-		sscanf(s + i*2, "%2hhx", &bytes[i]);
-	}
-	// Convert byte array to Unicode code points
-	i=0;
-	j=0;
-	while (i < len) {
-		if (bytes[i] < 0x80) {
-			codePoint = bytes[i];
-			numBytes = 1;
-		} else if (bytes[i] < 0xE0) {
-			codePoint = ((bytes[i] & 0x1F) << 6) | (bytes[i+1] & 0x3F);
-			numBytes = 2;
-		} else if (bytes[i] < 0xF0) {
-			codePoint = ((bytes[i] & 0x0F) << 12) | ((bytes[i+1] & 0x3F) << 6) | (bytes[i+2] & 0x3F);
-			numBytes = 3;
-		} else {
-			codePoint = ((bytes[i] & 0x07) << 18) | ((bytes[i+1] & 0x3F) << 12) | ((bytes[i+2] & 0x3F) << 6) | (bytes[i+3] & 0x3F);
-			numBytes = 4;
-		}
-		unicode[j++] = (char)codePoint;
-		i += numBytes;
-	}
-	unicode[j] = '\0';
-	free(bytes);
-	return unicode;
-}
 
 int utf8ToUnicode(char* utf8_char){
 	printf("utf8ToUnicode function started\n");
 	int len = strlen(utf8_char);
-	unsigned char *utf8 = (unsigned char*)utf8_char; //utf8 is a pointer to the input string that is cast to an unsigned char pointer (to ensure that byte values are interpreted correctly)
+	unsigned char *utf8 = (unsigned char*)utf8_char; //utf8 is a pointer to the input string that is cast to an unsigned char pointer
+	//I'm ensuring that byte values are interpreted correctly
 	int unicode;
 	/*if(len==0){
 		return -1;
@@ -96,6 +44,7 @@ int main(int argc, char *argv[]){
 	char *input_char = argv[1];
 	printf("%d %s 1st argument\n",__LINE__, input_char);
 	//check the input is utf8 or hex or unicode
+	
 	char checkchar[20];
 	for(int i=0; i< strlen(input_char); i++){
 		if(input_char[i] == 'x'){
@@ -114,10 +63,8 @@ int main(int argc, char *argv[]){
 	}
 	int unicode;
 	if(strcmp(checkchar,"utf8char")==0){
+		//utf8 caharacter to unicode
 		printf("%d its utf8 character\n",__LINE__);
-		/*char* hex = convertToHex(input_char);
-		printf("%d hex: %s\n",__LINE__, hex);*/
-		//int unicode;
 		unicode = utf8ToUnicode(input_char);
 		printf("%d Unicode: %04X\n", __LINE__, unicode);
 	}
@@ -125,15 +72,69 @@ int main(int argc, char *argv[]){
 		//hex to unicode
 		memmove(input_char, input_char+2, strlen(input_char)+1);  //remove first two characters
 		printf("%d unicode: %s\n",__LINE__, input_char);
-		//unicode = input_char;
-		//char* hex_to_unicode = hexToUnicode(input_char);
-		//printf("hex to unicode: %s\n",hex_to_unicode);
+		unicode = (int)input_char;
 	}
 	if(strcmp(checkchar,"unicode")==0){
 		memmove(input_char, input_char+2, strlen(input_char)+1);  //remove first two characters
 		printf("%d unicode: %s\n",__LINE__, input_char);
-		//unicode = input_char;
+		unicode = (int)input_char;
 	}
+
+
+	// Creating FcCharSet from Unicode output above
+    FcCharSet *charset = FcCharSetCreate();
+    FcCharSetAddChar(charset, unicode);
+
+    // Creating FcPattern from FcCharset
+    FcPattern *pattern = FcPatternCreate();
+    FcPatternAddCharSet(pattern, FC_CHARSET, charset); //add charset to font pattern
+
+    // Setting the font family if given otherwise sans-serif would be default
+	if(argc > 2){
+		FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*)argv[2]);//adding argument that is given other than sans-serif
+	}
+	else{
+		FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*)"sans-serif");//add string value to font pattern
+	}
+    
+    // Set the font weight and slant
+    FcPatternAddInteger(pattern, FC_WEIGHT, FC_WEIGHT_REGULAR);
+    FcPatternAddInteger(pattern, FC_SLANT, FC_SLANT_ROMAN);
+
+	FcPatternAddString(pattern, FC_FONTFORMAT, (const FcChar8*)"TrueType");
+	FcPatternAddString(pattern, FC_FONTFORMAT, (const FcChar8*)"OpenType");
+	FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);//making sure scalable is true to avoid Fixed, PCF fonts
+
+	// Matching the font
+    FcResult result;
+    FcPattern *font = FcFontMatch(NULL, pattern, &result);
+    if (font == NULL) {
+        printf("%d Font not found\n", __LINE__);
+        return 1;
+    }
+
+	// Getting the font file path
+	FcChar8 *font_path;
+	if (FcPatternGetString(font, FC_FILE, 0, &font_path) != FcResultMatch) {
+		printf("%d Font file path not found\n", __LINE__);
+		return 1;
+	}
+	
+	// Getting the font family, weight and slant
+	FcChar8 *family;
+	int weight, slant;
+	FcPatternGetString(font, FC_FAMILY, 0, &family);
+	FcPatternGetInteger(font, FC_WEIGHT, 0, &weight);
+	FcPatternGetInteger(font, FC_SLANT, 0, &slant);
+
+	// Printing the font information and setting style "Regular" if weight == FC_WEIGHT_REGULAR and slant == FC_SLANT_ROMAN
+	printf("%d Font found: %s: \"%s\" \"%s\"\n", __LINE__, font_path, family, 
+		weight == FC_WEIGHT_REGULAR && slant == FC_SLANT_ROMAN ? "Regular" : "");
+
+	// memory to be free
+	FcCharSetDestroy(charset);
+	FcPatternDestroy(pattern);
+	FcPatternDestroy(font);
 	
 	return 0;
 }
