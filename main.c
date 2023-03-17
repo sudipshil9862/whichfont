@@ -61,21 +61,7 @@ int main(int argc, char *argv[]){
 
 	//check the input is utf8 or hex or unicode
 	char checkchar[20];
-	for(int i=0; i< strlen(input_char); i++){
-		if(input_char[i] == 'x'){
-			printf("%d its hex code with 0xXXXX\n",__LINE__);
-			strcpy(checkchar,"hexcode");
-			break;
-		}
-		else if(input_char[i] == 'U'){
-			printf("%d its uni code with U+XXXX\n",__LINE__);
-			strcpy(checkchar,"unicode");
-			break;
-		}
-		else{
-			strcpy(checkchar,"utf8char");
-		}
-	}
+	int len_inputchar = strlen(input_char);
 
 	int has_digit = 0;
 	int has_letter = 0;
@@ -86,15 +72,31 @@ int main(int argc, char *argv[]){
 			has_letter = 1;
 		}
 	}
-	if (has_digit && has_letter) {
-		printf("%d its uni code without U+XXXX, with digits and letters\n",__LINE__);
-		strcpy(checkchar,"unicodeNoU+");
-	}
-	if (has_digit || has_letter) {
-		printf("%d its uni code without U+XXXX, with digits and letters\n",__LINE__);
-		strcpy(checkchar,"unicodeNoU+");
-	}
 
+	if(len_inputchar >= 2 && (input_char[0] == '0' && (input_char[1] == 'x' || input_char[1] == 'X'))){
+		printf("%d its hex code with 0xXXXX\n",__LINE__);
+		strcpy(checkchar, "hexcode");
+	}
+	else if (len_inputchar >= 2 && input_char[0] == 'U' && input_char[1] == '+')
+	{
+		printf("%d its uni code with U+XXXX\n",__LINE__);
+		strcpy(checkchar, "unicode");
+	}
+	else if (has_digit==1 && has_letter==0 && checkchar[0] == '\0')
+	{
+		printf("%d its uni code without having U+, with only digits\n",__LINE__);
+		strcpy(checkchar,"unicodeNoU+");
+	}
+	else if (has_digit==1 && has_letter==1 && checkchar[0] == '\0')
+	{
+		printf("%d its uni code without having U+, with only digits and letters\n",__LINE__);
+		strcpy(checkchar,"unicodeNoU+");
+	}
+	
+	else{
+		strcpy(checkchar, "utf8char");
+	}
+	
 	char *unicode_result = (char*) malloc(sizeof(char) * 8);
 
 	if(strcmp(checkchar,"utf8char")==0){
@@ -122,6 +124,7 @@ int main(int argc, char *argv[]){
 		printf("Decimal value: %d\n", (int) strtol(input_char, NULL, 16));
 		printf("%d unicode_result: %s\n",__LINE__, unicode_result);
 	}
+	
 	// Creating FcCharSet from Unicode output above
 	FcCharSet *charset = FcCharSetCreate();
 	FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
@@ -173,11 +176,12 @@ int main(int argc, char *argv[]){
 	printf("%d Font found: %s: \"%s\" \"%s\"\n", __LINE__, font_path, family, 
 			weight == FC_WEIGHT_REGULAR && slant == FC_SLANT_ROMAN ? "Regular" : "");
 
-	// memory to be free
 	FcCharSetDestroy(charset);
 	FcPatternDestroy(pattern);
 	FcPatternDestroy(font);
 	//free(unicode_result);
+	
+	
 
 	return 0;
 }
