@@ -50,6 +50,48 @@ char* hex_to_unicode(char* hexcode){
 	return unicode_str; 
 }
 
+void matchFontForUTF8(char* unicode_result, int argc, char* argv[]) {
+    FcCharSet* charset = FcCharSetCreate();
+    FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
+    FcConfig* config = FcInitLoadConfigAndFonts();
+    FcPattern* pattern = FcPatternCreate();
+    FcPatternAddCharSet(pattern, FC_CHARSET, charset);
+    if (!pattern) {
+        printf("%d error parsing pattern\n", __LINE__);
+        return;
+    }
+    FcConfigSubstitute(config, pattern, FcMatchPattern);
+    FcDefaultSubstitute(pattern);
+    if (argc > 2) {
+        FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*) argv[2]);
+    } else {
+        FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*) "sans-serif");
+    }
+    FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);
+    FcResult result;
+    FcPattern* font = FcFontMatch(NULL, pattern, &result);
+    if (font == NULL) {
+        printf("%d Font not found\n", __LINE__);
+        return;
+    }
+    FcChar8* font_path;
+    if (FcPatternGetString(font, FC_FILE, 0, &font_path) != FcResultMatch) {
+        printf("%d Font file path not found\n", __LINE__);
+        return;
+    }
+    FcChar8* family;
+    int weight, slant;
+    FcPatternGetString(font, FC_FAMILY, 0, &family);
+    FcPatternGetInteger(font, FC_WEIGHT, 0, &weight);
+    FcPatternGetInteger(font, FC_SLANT, 0, &slant);
+    printf("%d Font found: %s: \"%s\" \"%s\"\n", __LINE__, font_path, family,
+           weight == FC_WEIGHT_REGULAR && slant == FC_SLANT_ROMAN ? "Regular" : "");
+    FcCharSetDestroy(charset);
+	FcPatternDestroy(pattern);
+	FcPatternDestroy(font);
+}
+
+
 int main(int argc, char *argv[]){
 	if (argc < 2){
 		printf("%d Need argument UTF-8 character or hex along with %s\n", __LINE__, argv[0]);
@@ -57,10 +99,9 @@ int main(int argc, char *argv[]){
 		return 1;
 	}
 	char *input_char = argv[1];
-	printf("%d 1st argument: %s\n",__LINE__, input_char);
 
 	//check the input is utf8 or hex or unicode
-	char checkchar[20];
+	char checkchar[20] = {'\0'};
 	int len_inputchar = strlen(input_char);
 
 	int has_digit = 0;
@@ -92,11 +133,10 @@ int main(int argc, char *argv[]){
 		printf("%d its uni code without having U+, with only digits and letters\n",__LINE__);
 		strcpy(checkchar,"unicodeNoU+");
 	}
-	
 	else{
 		strcpy(checkchar, "utf8char");
 	}
-	
+
 	char *unicode_result = (char*) malloc(sizeof(char) * 8);
 
 	if(strcmp(checkchar,"utf8char")==0){
@@ -107,81 +147,28 @@ int main(int argc, char *argv[]){
 			printf("%d unicode_result: %s\n", __LINE__,unicode_result);
 		}
 	}
-	if(strcmp(checkchar,"hexcode")==0){
+	else if(strcmp(checkchar,"hexcode")==0){
 		//hexadecimal to unicode
 		unicode_result = hex_to_unicode(input_char);
 		printf("Decimal value: %d\n", (int) strtol(input_char, NULL, 16));
 		printf("%d unicode_result: %s\n",__LINE__, unicode_result);
 	}
-	if(strcmp(checkchar,"unicode")==0){
+	else if(strcmp(checkchar,"unicode")==0){
 		//unicode with U+XXXX to unicode without U+
 		memmove(input_char, input_char+2, strlen(input_char)+1);  //remove first two characters
 		printf("%d unicode_result: %s\n",__LINE__, input_char);
 		unicode_result = input_char;
 	}
-	if(strcmp(checkchar,"unicodeNoU+")==0){
+	else if(strcmp(checkchar,"unicodeNoU+")==0){
 		unicode_result = hex_to_unicode(input_char);
 		printf("Decimal value: %d\n", (int) strtol(input_char, NULL, 16));
 		printf("%d unicode_result: %s\n",__LINE__, unicode_result);
 	}
-	
-	// Creating FcCharSet from Unicode output above
-	FcCharSet *charset = FcCharSetCreate();
-	FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
-
-	// Creating FcPattern from FcCharset
-	FcConfig* config = FcInitLoadConfigAndFonts();
-	FcPattern *pattern = FcPatternCreate();
-	FcPatternAddCharSet(pattern, FC_CHARSET, charset); //add charset to font pattern
-	if(!pattern){
-		printf("%d error parsing pattern\n", __LINE__);
-		return 1;
-	}
-	FcConfigSubstitute(config, pattern, FcMatchPattern);
-	FcDefaultSubstitute(pattern);
-
-	// Setting the font family if given otherwise sans-serif would be default
-	if(argc > 2){
-		FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*)argv[2]);//adding argument that is given other than sans-serif
-	}
 	else{
-		FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*)"sans-serif");//add string value to font pattern
+		printf("%d unknown input format", __LINE__);
 	}
-
-	FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);//making sure scalable is true to avoid Fixed, PCF fonts
-
-	// Matching the font
-	FcResult result;
-	FcPattern *font = FcFontMatch(NULL, pattern, &result);
-	if (font == NULL) {
-		printf("%d Font not found\n", __LINE__);
-		return 1;
-	}
-
-	// Getting the font file path
-	FcChar8 *font_path;
-	if (FcPatternGetString(font, FC_FILE, 0, &font_path) != FcResultMatch) {
-		printf("%d Font file path not found\n", __LINE__);
-		return 1;
-	}
-
-	// Getting the font family, weight and slant
-	FcChar8 *family;
-	int weight, slant;
-	FcPatternGetString(font, FC_FAMILY, 0, &family);
-	FcPatternGetInteger(font, FC_WEIGHT, 0, &weight);
-	FcPatternGetInteger(font, FC_SLANT, 0, &slant);
-
-	// Printing the font information and setting style "Regular" if weight == FC_WEIGHT_REGULAR and slant == FC_SLANT_ROMAN
-	printf("%d Font found: %s: \"%s\" \"%s\"\n", __LINE__, font_path, family, 
-			weight == FC_WEIGHT_REGULAR && slant == FC_SLANT_ROMAN ? "Regular" : "");
-
-	FcCharSetDestroy(charset);
-	FcPatternDestroy(pattern);
-	FcPatternDestroy(font);
-	//free(unicode_result);
 	
-	
+	matchFontForUTF8(unicode_result, argc, argv);
 
 	return 0;
 }
