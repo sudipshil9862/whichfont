@@ -5,6 +5,7 @@
 #include<string.h>
 #include <ctype.h>
 
+
 char* utf8ToUnicode(char* utf8_char){
 	int len = strlen(utf8_char);
 	unsigned char *utf8 = (unsigned char*)utf8_char; //utf8 is a pointer to the input string that is cast to an unsigned char pointer
@@ -50,8 +51,48 @@ char* hex_to_unicode(char* hexcode){
 	return unicode_str; 
 }
 
-void matchFontForUTF8(char* unicode_result, int argc, char* argv[]) {
-    FcCharSet* charset = FcCharSetCreate();
+void matchFontForUTF8_ALL(char* unicode_result) {
+	//with -a
+	FcCharSet *charset = FcCharSetCreate();
+	FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
+	FcConfig *config = FcInitLoadConfigAndFonts();
+	FcPattern *pattern = FcPatternCreate();
+	FcPatternAddCharSet(pattern, FC_CHARSET, charset); //add charset to font pattern
+	if (!pattern) {
+        printf("%d error parsing pattern\n", __LINE__);
+        return;
+    }
+	FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);
+	FcObjectSet *object_set = FcObjectSetBuild(FC_FILE, FC_FAMILY, FC_WEIGHT, FC_SLANT, NULL);
+	FcFontSet *font_set = FcFontList(config, pattern, object_set);
+	if (font_set == NULL) {
+		printf("%d Font not found\n", __LINE__);
+		return;
+	}
+	for (int i = 0; i < font_set->nfont; i++) {
+		FcPattern *font = font_set->fonts[i];
+		FcChar8 *font_path;
+		if (FcPatternGetString(font, FC_FILE, 0, &font_path) != FcResultMatch) {
+			printf("%d Font file path not found\n", __LINE__);
+			continue;
+		}
+		FcChar8 *family;
+		int weight, slant;
+		FcPatternGetString(font, FC_FAMILY, 0, &family);
+		FcPatternGetInteger(font, FC_WEIGHT, 0, &weight);
+		FcPatternGetInteger(font, FC_SLANT, 0, &slant);
+		printf("%d Font found: %s: \"%s\" \"%s\"\n", __LINE__, font_path, family,
+			weight == FC_WEIGHT_REGULAR && slant == FC_SLANT_ROMAN ? "Regular" : "");
+	}
+	FcCharSetDestroy(charset);
+	FcPatternDestroy(pattern);
+	FcObjectSetDestroy(object_set);
+	FcFontSetDestroy(font_set);
+}
+
+void matchFontForUTF8(char* unicode_result, int argc, char* argv[], int defaultFamily) {
+    //without -a,-s
+	FcCharSet* charset = FcCharSetCreate();
     FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
     FcConfig* config = FcInitLoadConfigAndFonts();
     FcPattern* pattern = FcPatternCreate();
@@ -62,7 +103,7 @@ void matchFontForUTF8(char* unicode_result, int argc, char* argv[]) {
     }
     FcConfigSubstitute(config, pattern, FcMatchPattern);
     FcDefaultSubstitute(pattern);
-    if (argc > 2) {
+    if (defaultFamily == 1) {
         FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*) argv[2]);
     } else {
         FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*) "sans-serif");
@@ -85,7 +126,7 @@ void matchFontForUTF8(char* unicode_result, int argc, char* argv[]) {
     FcPatternGetInteger(font, FC_WEIGHT, 0, &weight);
     FcPatternGetInteger(font, FC_SLANT, 0, &slant);
     printf("%d Font found: %s: \"%s\" \"%s\"\n", __LINE__, font_path, family,
-           weight == FC_WEIGHT_REGULAR && slant == FC_SLANT_ROMAN ? "Regular" : "");
+				weight == FC_WEIGHT_REGULAR && slant == FC_SLANT_ROMAN ? "Regular" : "");
     FcCharSetDestroy(charset);
 	FcPatternDestroy(pattern);
 	FcPatternDestroy(font);
@@ -98,7 +139,46 @@ int main(int argc, char *argv[]){
 		printf("%d no argument is given\nexiting program...\n",__LINE__);
 		return 1;
 	}
-	char *input_char = argv[1];
+	char *input_char = NULL;
+	int defaultFamily = 0; //sans-serif
+	int option = 0; //if -a,-s not there
+	if (strcmp(argv[1], "-a") == 0)
+	{
+		printf("%d -a argument is there\n",__LINE__);
+		option = 1;
+		if (argc == 3)
+		{
+			input_char = argv[2];
+		}
+		else if(argc == 4){
+			input_char = argv[2];
+			defaultFamily = 1; //some other family
+		}
+		else if (argc == 2)
+		{
+			printf("enter utf8_character or unicode or hexadecimal");
+			return 1;
+		}
+		else{
+			printf("too many arguments");
+			return 1;
+		}
+	}
+	else{
+		if (argc == 3)
+		{
+			input_char = argv[1];
+			defaultFamily = 1; //some other family
+		}
+		else if (argc == 2)
+		{
+			input_char = argv[1];
+		}
+		else{
+			printf("too many arguments");
+			return 1;
+		}
+	}
 
 	//check the input is utf8 or hex or unicode
 	char checkchar[20] = {'\0'};
@@ -167,8 +247,15 @@ int main(int argc, char *argv[]){
 	else{
 		printf("%d unknown input format", __LINE__);
 	}
-	
-	matchFontForUTF8(unicode_result, argc, argv);
+
+
+	//now important function
+	if(option == 0){
+		matchFontForUTF8(unicode_result, argc, argv, defaultFamily);
+	}
+	else{
+		matchFontForUTF8_ALL(unicode_result);
+	}
 
 	return 0;
 }
