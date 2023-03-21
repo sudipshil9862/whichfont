@@ -62,36 +62,29 @@ void matchFontForUTF8_ALL(char* unicode_result) {
         printf("%d error parsing pattern\n", __LINE__);
         return;
     }
-	FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);
-	FcObjectSet *object_set = FcObjectSetBuild(FC_FILE, FC_FAMILY, FC_WEIGHT, FC_SLANT, NULL);
+	FcPatternAddBool(pattern, FC_SCALABLE, FcTrue); //avoiding Fixed, Biwidth fonts(unscalable fonts)
+	FcObjectSet *object_set = FcObjectSetBuild(FC_FAMILY, FC_STYLE, FC_FILE, FC_INDEX, FC_CHARSET, NULL);
 	FcFontSet *font_set = FcFontList(config, pattern, object_set);
 	if (font_set == NULL) {
 		printf("%d Font not found\n", __LINE__);
 		return;
 	}
 	for (int i = 0; i < font_set->nfont; i++) {
-		FcPattern *font = font_set->fonts[i];
-		FcChar8 *font_path;
-		if (FcPatternGetString(font, FC_FILE, 0, &font_path) != FcResultMatch) {
-			printf("%d Font file path not found\n", __LINE__);
-			continue;
-		}
-		FcChar8 *family;
-		int weight, slant;
-		FcPatternGetString(font, FC_FAMILY, 0, &family);
-		FcPatternGetInteger(font, FC_WEIGHT, 0, &weight);
-		FcPatternGetInteger(font, FC_SLANT, 0, &slant);
-		printf("%d Font found: %s: \"%s\" \"%s\"\n", __LINE__, font_path, family,
-			weight == FC_WEIGHT_REGULAR && slant == FC_SLANT_ROMAN ? "Regular" : "");
+		FcChar8 *file, *family, *style;
+        FcPatternGetString(font_set->fonts[i], FC_FILE, 0, &file);
+        FcPatternGetString(font_set->fonts[i], FC_FAMILY, 0, &family);
+        FcPatternGetString(font_set->fonts[i], FC_STYLE, 0, &style);
+        printf("%s:%s:%s\n", file, family, style);
 	}
 	FcCharSetDestroy(charset);
 	FcPatternDestroy(pattern);
 	FcObjectSetDestroy(object_set);
 	FcFontSetDestroy(font_set);
+	FcConfigDestroy(config);
 }
 
 void matchFontForUTF8(char* unicode_result, int argc, char* argv[], int defaultFamily) {
-    //without -a,-s
+    //selecting the best font
 	FcCharSet* charset = FcCharSetCreate();
     FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
     FcConfig* config = FcInitLoadConfigAndFonts();
