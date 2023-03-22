@@ -62,7 +62,7 @@ void matchFontForUTF8_ALL(char* unicode_result) {
         printf("%d error parsing pattern\n", __LINE__);
         return;
     }
-	FcPatternAddBool(pattern, FC_SCALABLE, FcTrue); //avoiding Fixed, Biwidth fonts(unscalable fonts)
+	//FcPatternAddBool(pattern, FC_SCALABLE, FcTrue); //avoiding Fixed, Biwidth fonts(unscalable fonts)
 	FcObjectSet *object_set = FcObjectSetBuild(FC_FAMILY, FC_STYLE, FC_FILE, FC_INDEX, FC_CHARSET, NULL);
 	FcFontSet *font_set = FcFontList(config, pattern, object_set);
 	if (font_set == NULL) {
@@ -81,6 +81,64 @@ void matchFontForUTF8_ALL(char* unicode_result) {
 	FcObjectSetDestroy(object_set);
 	FcFontSetDestroy(font_set);
 	FcConfigDestroy(config);
+}
+
+void matchFontForUTF8_SORT(char* unicode_result) {
+	//with -s
+	FcCharSet *charset = FcCharSetCreate();
+    FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
+    FcConfig *config = FcInitLoadConfigAndFonts();
+    FcPattern *pattern = FcPatternCreate();
+    FcPatternAddCharSet(pattern, FC_CHARSET, charset); //add charset to font pattern
+    if (!pattern) {
+        printf("%d error parsing pattern\n", __LINE__);
+        return;
+    }
+    //FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);
+	FcResult font_result; //error handling if any so we need this font_result
+    FcObjectSet *object_set = FcObjectSetBuild(FC_FAMILY, FC_STYLE, FC_FILE, FC_INDEX, NULL);
+	FcFontSet *font_set = FcFontSort (0, pattern, FcTrue, 0, &font_result);
+	if (font_set == NULL || font_set->nfont == 0) {
+        printf("%d Font not found\n", __LINE__);
+        return;
+    }
+ 	FcFontSet *fs;
+	fs = FcFontSetCreate ();
+	int j;
+	for (j = 0; j < font_set->nfont; j++)
+	{
+	    FcPattern  *font_pattern;
+
+	    font_pattern = FcFontRenderPrepare (NULL, pattern, font_set->fonts[j]);
+	    if (font_pattern)
+		FcFontSetAdd (fs, font_pattern);
+	}
+	if (fs)
+    {
+	int	j;
+	for (j = 0; j < fs->nfont; j++)
+	{
+	    FcPattern *font;
+		FcObjectSet	*os = 0;
+	    font = FcPatternFilter (fs->fonts[j], os);
+	    FcChar8 *s;
+		const FcChar8 *format = NULL;
+		format = (const FcChar8 *) "%{=fcmatch}\n";
+		s = FcPatternFormat (font, format);
+		if(s)
+		{
+		    printf ("%s", s);
+		    FcStrFree (s);
+		}
+	    FcPatternDestroy (font);
+	}
+	FcFontSetDestroy (fs);
+    }
+    FcCharSetDestroy(charset);
+    FcPatternDestroy(pattern);
+    FcObjectSetDestroy(object_set);
+    FcFontSetDestroy(font_set);
+    FcConfigDestroy(config);
 }
 
 void matchFontForUTF8(char* unicode_result, int argc, char* argv[], int defaultFamily) {
@@ -135,10 +193,23 @@ int main(int argc, char *argv[]){
 	char *input_char = NULL;
 	int defaultFamily = 0; //sans-serif
 	int option = 0; //if -a,-s not there
-	if (strcmp(argv[1], "-a") == 0)
+	if ((strcmp(argv[1], "-a") == 0) || (strcmp(argv[1], "-s") == 0))
 	{
-		printf("%d -a argument is there\n",__LINE__);
-		option = 1;
+		if(strcmp(argv[1], "-a")==0){
+			printf("%d -a argument is there\n",__LINE__);
+			option = 1; // 1 for -a
+		}
+		else if (strcmp(argv[1], "-s")==0)
+		{
+			printf("%d -s argument is there\n",__LINE__);
+			option = 2; //2 for -s
+		}
+		else
+		{
+			printf("%d invalid option argument is there\n",__LINE__);
+			return 1;
+		}
+		//checking other arguments
 		if (argc == 3)
 		{
 			input_char = argv[2];
@@ -246,8 +317,11 @@ int main(int argc, char *argv[]){
 	if(option == 0){
 		matchFontForUTF8(unicode_result, argc, argv, defaultFamily);
 	}
-	else{
+	else if(option == 1){
 		matchFontForUTF8_ALL(unicode_result);
+	}
+	else{
+		matchFontForUTF8_SORT(unicode_result);
 	}
 
 	return 0;
