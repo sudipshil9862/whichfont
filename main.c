@@ -44,14 +44,6 @@ char* utf8ToUnicode(char* utf8_char){
 	return NULL;
 }
 
-char* hex_to_unicode(char* hexcode){
-	int unicode = (int)strtol(hexcode, NULL, 16);
-	char* unicode_str = (char*)malloc(sizeof(char*)*8);
-	//sprintf(unicode_str,"U+%04X",unicode);
-	sprintf(unicode_str,"%04X",unicode);
-	return unicode_str; 
-}
-
 void matchFontForUTF8_ALL(char* unicode_result) {
 	//with -a
 	FcCharSet *charset = FcCharSetCreate();
@@ -245,8 +237,6 @@ int main(int argc, char *argv[]){
 		}
 	}
 
-	//check the input is utf8 or hex or unicode
-	char checkchar[20] = {'\0'};
 	int len_inputchar = strlen(input_char);
 
 	int has_digit = 0;
@@ -259,33 +249,30 @@ int main(int argc, char *argv[]){
 		}
 	}
 
-	if(len_inputchar >= 2 && (input_char[0] == '0' && (input_char[1] == 'x' || input_char[1] == 'X'))){
-		printf("%d its hex code with 0xXXXX\n",__LINE__);
-		strcpy(checkchar, "hexcode");
-	}
-	else if (len_inputchar >= 2 && input_char[0] == 'U' && input_char[1] == '+')
-	{
-		printf("%d its uni code with U+XXXX\n",__LINE__);
-		strcpy(checkchar, "unicode");
-	}
-	else if (has_digit==1 && has_letter==0 && checkchar[0] == '\0')
-	{
-		printf("%d its uni code without having U+, with only digits\n",__LINE__);
-		strcpy(checkchar,"unicodeNoU+");
-	}
-	else if (has_digit==1 && has_letter==1 && checkchar[0] == '\0')
-	{
-		//printf("%d its uni code without having U+, with only digits and letters\n",__LINE__);
-		//strcpy(checkchar,"unicodeNoU+");
-		strcpy(checkchar, "utf8char");
-	}
-	else{
-		strcpy(checkchar, "utf8char");
-	}
-
 	char *unicode_result = (char*) malloc(sizeof(char) * 8);
 
-	if(strcmp(checkchar,"utf8char")==0){
+	if(len_inputchar >= 2 && (input_char[0] == '0' && (input_char[1] == 'x' || input_char[1] == 'X'))){
+		//hexadecimal to unicode
+		printf("%d its hex code with 0xXXXX\n",__LINE__);
+		memmove(input_char, input_char+2, strlen(input_char)+1);  //remove first two characters
+		printf("%d unicode_result: %s\n",__LINE__, unicode_result);
+	}
+	else if (len_inputchar >= 2 && input_char[1] == '+' && (input_char[0] == 'U' || input_char[0] == 'u'))
+	{
+		printf("%d its uni code with U+XXXX\n",__LINE__);
+		//unicode with U+XXXX to unicode without U+
+		memmove(input_char, input_char+2, strlen(input_char)+1);  //remove first two characters
+		printf("%d unicode_result: %s\n",__LINE__, input_char);
+		unicode_result = input_char;
+	}
+	else if (has_digit==1 && has_letter==0)
+	{
+		printf("%d its uni code without having U+, with only digits\n",__LINE__);
+		unicode_result = input_char;
+		printf("%d unicode_result: %s\n",__LINE__, unicode_result);
+	}
+	else
+	{
 		//utf8 caharacter to unicode
 		printf("%d its utf8 character\n",__LINE__);		
 		gchar* p = input_char;
@@ -311,27 +298,6 @@ int main(int argc, char *argv[]){
 		}
 		return 1;
 	}
-	else if(strcmp(checkchar,"hexcode")==0){
-		//hexadecimal to unicode
-		unicode_result = hex_to_unicode(input_char);
-		printf("Decimal value: %d\n", (int) strtol(input_char, NULL, 16));
-		printf("%d unicode_result: %s\n",__LINE__, unicode_result);
-	}
-	else if(strcmp(checkchar,"unicode")==0){
-		//unicode with U+XXXX to unicode without U+
-		memmove(input_char, input_char+2, strlen(input_char)+1);  //remove first two characters
-		printf("%d unicode_result: %s\n",__LINE__, input_char);
-		unicode_result = input_char;
-	}
-	else if(strcmp(checkchar,"unicodeNoU+")==0){
-		unicode_result = hex_to_unicode(input_char);
-		printf("Decimal value: %d\n", (int) strtol(input_char, NULL, 16));
-		printf("%d unicode_result: %s\n",__LINE__, unicode_result);
-	}
-	else{
-		printf("%d unknown input format", __LINE__);
-	}
-
 
 	//now important function
 	if(option == 0){
