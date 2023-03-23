@@ -3,8 +3,9 @@
 #include<stdio.h>
 #include<stdint.h>
 #include<string.h>
-#include <ctype.h>
-
+#include<ctype.h>
+#include<glib.h>
+#include<wchar.h>
 
 char* utf8ToUnicode(char* utf8_char){
 	int len = strlen(utf8_char);
@@ -178,7 +179,7 @@ void matchFontForUTF8(char* unicode_result, int argc, char* argv[], int defaultF
     FcPatternGetInteger(font, FC_SLANT, 0, &slant);
     printf("%d Font found: %s: \"%s\" \"%s\"\n", __LINE__, font_path, family,
 				weight == FC_WEIGHT_REGULAR && slant == FC_SLANT_ROMAN ? "Regular" : "");
-    FcCharSetDestroy(charset);
+	FcCharSetDestroy(charset);
 	FcPatternDestroy(pattern);
 	FcPatternDestroy(font);
 }
@@ -274,8 +275,9 @@ int main(int argc, char *argv[]){
 	}
 	else if (has_digit==1 && has_letter==1 && checkchar[0] == '\0')
 	{
-		printf("%d its uni code without having U+, with only digits and letters\n",__LINE__);
-		strcpy(checkchar,"unicodeNoU+");
+		//printf("%d its uni code without having U+, with only digits and letters\n",__LINE__);
+		//strcpy(checkchar,"unicodeNoU+");
+		strcpy(checkchar, "utf8char");
 	}
 	else{
 		strcpy(checkchar, "utf8char");
@@ -285,11 +287,29 @@ int main(int argc, char *argv[]){
 
 	if(strcmp(checkchar,"utf8char")==0){
 		//utf8 caharacter to unicode
-		printf("%d its utf8 character\n",__LINE__);
-		unicode_result = utf8ToUnicode(input_char);
-		if(unicode_result){
-			printf("%d unicode_result: %s\n", __LINE__,unicode_result);
+		printf("%d its utf8 character\n",__LINE__);		
+		gchar* p = input_char;
+		while (*p != '\0') {
+			gunichar unicode = g_utf8_get_char(p);
+			gchar utf8_str[5];
+			g_unichar_to_utf8(unicode, utf8_str);
+			printf("%d unicode_result of %s: %04x\n",__LINE__, utf8_str, unicode);
+			sprintf(unicode_result, "%04x", unicode);
+			p = g_utf8_next_char(p);
+			if(unicode_result){
+				printf("%d unicode_result: %s\n", __LINE__,unicode_result);
+			}
+			if(option == 0){
+				matchFontForUTF8(unicode_result, argc, argv, defaultFamily);
+			}
+			else if(option == 1){
+				matchFontForUTF8_ALL(unicode_result);
+			}
+			else{
+				matchFontForUTF8_SORT(unicode_result);
+			}
 		}
+		return 1;
 	}
 	else if(strcmp(checkchar,"hexcode")==0){
 		//hexadecimal to unicode
@@ -323,6 +343,5 @@ int main(int argc, char *argv[]){
 	else{
 		matchFontForUTF8_SORT(unicode_result);
 	}
-
 	return 0;
 }
