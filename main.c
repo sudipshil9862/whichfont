@@ -6,43 +6,7 @@
 #include<ctype.h>
 #include<glib.h>
 #include<wchar.h>
-
-char* utf8ToUnicode(char* utf8_char){
-	int len = strlen(utf8_char);
-	unsigned char *utf8 = (unsigned char*)utf8_char; //utf8 is a pointer to the input string that is cast to an unsigned char pointer
-	//I'm ensuring that byte values are interpreted correctly
-	int unicode;
-	char *unicode_result = (char*) malloc(sizeof(char) * 8);
-	if(len==0){
-		return NULL;
-	}
-	if (utf8[0] <= 0x7F) {
-		unicode = utf8[0];
-		printf("%d utf8tounicode function returns unicode: %d\n",__LINE__, unicode);
-		sprintf(unicode_result, "%04x", unicode);
-		return unicode_result;
-	}
-	if ((utf8[0] & 0xE0) == 0xC0 && len >= 2) {
-		unicode = ((utf8[0] & 0x1F) << 6) | (utf8[1] & 0x3F);
-		printf("%d utf8tounicode function returns unicode: %d\n",__LINE__, unicode);
-		sprintf(unicode_result, "%04x", unicode);
-		return unicode_result;
-	}
-	if ((utf8[0] & 0xF0) == 0xE0 && len >= 3) {
-		unicode = ((utf8[0] & 0x0F) << 12) | ((utf8[1] & 0x3F) << 6) | (utf8[2] & 0x3F);
-		printf("%d utf8tounicode function returns unicode: %d\n",__LINE__, unicode);
-		sprintf(unicode_result, "%04x", unicode);
-		return unicode_result;
-	}
-	if ((utf8[0] & 0xF8) == 0xF0 && len >= 4) {
-		unicode = ((utf8[0] & 0x07) << 18) | ((utf8[1] & 0x3F) << 12) | ((utf8[2] & 0x3F) << 6) | (utf8[3] & 0x3F);
-		printf("%d utf8tounicode function returns unicode: %d\n",__LINE__, unicode);
-		sprintf(unicode_result, "%04x", unicode);
-		return unicode_result;
-	}
-	free(unicode_result);
-	return NULL;
-}
+#include<locale.h>
 
 void matchFontForUTF8_ALL(char* unicode_result) {
 	//with -a
@@ -52,14 +16,14 @@ void matchFontForUTF8_ALL(char* unicode_result) {
 	FcPattern *pattern = FcPatternCreate();
 	FcPatternAddCharSet(pattern, FC_CHARSET, charset); //add charset to font pattern
 	if (!pattern) {
-        printf("%d error parsing pattern\n", __LINE__);
+        printf("error parsing pattern\n");
         return;
     }
 	//FcPatternAddBool(pattern, FC_SCALABLE, FcTrue); //avoiding Fixed, Biwidth fonts(unscalable fonts)
 	FcObjectSet *object_set = FcObjectSetBuild(FC_FAMILY, FC_STYLE, FC_FILE, FC_INDEX, FC_CHARSET, NULL);
 	FcFontSet *font_set = FcFontList(config, pattern, object_set);
 	if (font_set == NULL) {
-		printf("%d Font not found\n", __LINE__);
+		printf("Font not found\n");
 		return;
 	}
 	for (int i = 0; i < font_set->nfont; i++) {
@@ -84,7 +48,7 @@ void matchFontForUTF8_SORT(char* unicode_result) {
     FcPattern *pattern = FcPatternCreate();
     FcPatternAddCharSet(pattern, FC_CHARSET, charset); //add charset to font pattern
     if (!pattern) {
-        printf("%d error parsing pattern\n", __LINE__);
+        printf("error parsing pattern\n");
         return;
     }
     //FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);
@@ -92,7 +56,7 @@ void matchFontForUTF8_SORT(char* unicode_result) {
     FcObjectSet *object_set = FcObjectSetBuild(FC_FAMILY, FC_STYLE, FC_FILE, FC_INDEX, NULL);
 	FcFontSet *font_set = FcFontSort (0, pattern, FcTrue, 0, &font_result);
 	if (font_set == NULL || font_set->nfont == 0) {
-        printf("%d Font not found\n", __LINE__);
+        printf("Font not found\n");
         return;
     }
  	FcFontSet *fs;
@@ -142,7 +106,7 @@ void matchFontForUTF8(char* unicode_result, int argc, char* argv[], int defaultF
     FcPattern* pattern = FcPatternCreate();
     FcPatternAddCharSet(pattern, FC_CHARSET, charset);
     if (!pattern) {
-        printf("%d error parsing pattern\n", __LINE__);
+        printf("error parsing pattern\n");
         return;
     }
     FcConfigSubstitute(config, pattern, FcMatchPattern);
@@ -156,12 +120,12 @@ void matchFontForUTF8(char* unicode_result, int argc, char* argv[], int defaultF
     FcResult result;
     FcPattern* font = FcFontMatch(NULL, pattern, &result);
     if (font == NULL) {
-        printf("%d Font not found\n", __LINE__);
+        printf("Font not found\n");
         return;
     }
     FcChar8* font_path;
     if (FcPatternGetString(font, FC_FILE, 0, &font_path) != FcResultMatch) {
-        printf("%d Font file path not found\n", __LINE__);
+        printf("Font file path not found\n");
         return;
     }
     FcChar8* family;
@@ -169,7 +133,7 @@ void matchFontForUTF8(char* unicode_result, int argc, char* argv[], int defaultF
     FcPatternGetString(font, FC_FAMILY, 0, &family);
     FcPatternGetInteger(font, FC_WEIGHT, 0, &weight);
     FcPatternGetInteger(font, FC_SLANT, 0, &slant);
-    printf("%d Font found: %s: \"%s\" \"%s\"\n", __LINE__, font_path, family,
+    printf("Font found: %s: \"%s\" \"%s\"\n", font_path, family,
 				weight == FC_WEIGHT_REGULAR && slant == FC_SLANT_ROMAN ? "Regular" : "");
 	FcCharSetDestroy(charset);
 	FcPatternDestroy(pattern);
@@ -191,8 +155,8 @@ int is_valid_hex(char* input) {
 
 int main(int argc, char *argv[]){
 	if (argc < 2){
-		printf("%d Need argument UTF-8 character or hex along with %s\n", __LINE__, argv[0]);
-		printf("%d no argument is given\nexiting program...\n",__LINE__);
+		printf("Need argument UTF-8 character or hex along with %s\n", argv[0]);
+		printf("no argument is given\nexiting program...\n");
 		return 1;
 	}
 	char *input_char = NULL;
@@ -201,17 +165,17 @@ int main(int argc, char *argv[]){
 	if ((strcmp(argv[1], "-a") == 0) || (strcmp(argv[1], "-s") == 0))
 	{
 		if(strcmp(argv[1], "-a")==0){
-			printf("%d -a argument is there\n",__LINE__);
+			printf("-a argument is there\n");
 			option = 1; // 1 for -a
 		}
 		else if (strcmp(argv[1], "-s")==0)
 		{
-			printf("%d -s argument is there\n",__LINE__);
+			printf("-s argument is there\n");
 			option = 2; //2 for -s
 		}
 		else
 		{
-			printf("%d invalid option argument is there\n",__LINE__);
+			printf("invalid option argument is there\n");
 			return 1;
 		}
 		//checking other arguments
@@ -261,15 +225,12 @@ int main(int argc, char *argv[]){
 		}
 	}
 
-	char *unicode_result = (char*) malloc(sizeof(char) * 8);
-
 	if(len_inputchar >= 2 && (input_char[0] == '0' && (input_char[1] == 'x' || input_char[1] == 'X'))){
 		//hexadecimal to unicode
 		if (is_valid_hex(input_char)) {
-			printf("%d its hex code with 0xXXXX\n",__LINE__);
+			printf("its hex code with 0xXXXX\n");
 			input_char += 2;
-			printf("%d unicode_result: %s\n",__LINE__, unicode_result);
-			unicode_result = input_char;
+			printf("unicode_result: %s\n", input_char);
 		}
 		else{
 			printf("invalid hexadecimal value\n");
@@ -285,33 +246,35 @@ int main(int argc, char *argv[]){
 			return 1;
 		}
 		else{
-			printf("%d its uni code with U+XXXX\n",__LINE__);
+			printf("its uni code with U+XXXX\n");
 			input_char += 2;
-			printf("%d unicode_result: %s\n",__LINE__, input_char);
-			unicode_result = input_char;
+			printf("unicode_result: %s\n", input_char);
 		}
 	}
 	else if (has_digit==1 && has_letter==0)
 	{
-		printf("%d its uni code without having U+, with only digits\n",__LINE__);
-		unicode_result = input_char;
-		printf("%d unicode_result: %s\n",__LINE__, unicode_result);
+		printf("its uni code without having U+, with only digits\n");
+		printf("unicode_result: %s\n",input_char);
 	}
 	else
 	{
 		//utf8 caharacter to unicode
-		printf("%d its utf8 character\n",__LINE__);		
-		gchar* p = input_char;
-		while (*p != '\0') {
-			gunichar unicode = g_utf8_get_char(p);
-			gchar utf8_str[5];
-			g_unichar_to_utf8(unicode, utf8_str);
-			printf("%d unicode_result of %s: %04x\n",__LINE__, utf8_str, unicode);
-			sprintf(unicode_result, "%04x", unicode);
-			p = g_utf8_next_char(p);
-			if(unicode_result){
-				printf("%d unicode_result: %s\n", __LINE__,unicode_result);
+		printf("its utf8 character\n");
+		setlocale(LC_ALL, "");
+		wchar_t wc;
+		char* unicode_result = (char*) malloc(5 * sizeof(char));
+		char* p = input_char;
+		while (*p) {
+			int count = mbtowc(&wc, p, MB_CUR_MAX);
+			if (count < 0) {
+				fprintf(stderr, "Error: invalid multibyte sequence\n");
+				return 1;
+			} else if (count == 0) {
+				fprintf(stderr, "Error: unexpected end of string\n");
+				return 1;
 			}
+			sprintf(unicode_result, "%04X", (unsigned int) wc);
+        	printf("Character: %lc, Unicode: %s\n", wc, unicode_result);
 			if(option == 0){
 				matchFontForUTF8(unicode_result, argc, argv, defaultFamily);
 			}
@@ -321,19 +284,21 @@ int main(int argc, char *argv[]){
 			else{
 				matchFontForUTF8_SORT(unicode_result);
 			}
+			p += count;
 		}
-		return 1;
+		free(unicode_result);
+		return 0;
 	}
 
 	//now important function
 	if(option == 0){
-		matchFontForUTF8(unicode_result, argc, argv, defaultFamily);
+		matchFontForUTF8(input_char, argc, argv, defaultFamily);
 	}
 	else if(option == 1){
-		matchFontForUTF8_ALL(unicode_result);
+		matchFontForUTF8_ALL(input_char);
 	}
 	else{
-		matchFontForUTF8_SORT(unicode_result);
+		matchFontForUTF8_SORT(input_char);
 	}
 	return 0;
 }
