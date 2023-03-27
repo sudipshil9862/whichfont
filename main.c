@@ -267,7 +267,7 @@ int main(int argc, char *argv[]){
 		//hexadecimal to unicode
 		if (is_valid_hex(input_char)) {
 			printf("%d its hex code with 0xXXXX\n",__LINE__);
-			memmove(input_char, input_char+2, strlen(input_char)+1);  //remove first two characters
+			input_char += 2;
 			printf("%d unicode_result: %s\n",__LINE__, unicode_result);
 			unicode_result = input_char;
 		}
@@ -286,7 +286,7 @@ int main(int argc, char *argv[]){
 		}
 		else{
 			printf("%d its uni code with U+XXXX\n",__LINE__);
-			memmove(input_char, input_char+2, strlen(input_char)+1);
+			input_char += 2;
 			printf("%d unicode_result: %s\n",__LINE__, input_char);
 			unicode_result = input_char;
 		}
