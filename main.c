@@ -176,6 +176,18 @@ void matchFontForUTF8(char* unicode_result, int argc, char* argv[], int defaultF
 	FcPatternDestroy(font);
 }
 
+int is_valid_hex(char* input) {
+    int len = strlen(input);
+    if (len < 3 || input[0] != '0' || tolower(input[1]) != 'x') {
+        return 0;
+    }
+    for (int i = 2; i < len; i++) {
+        if (!isxdigit(input[i])) {
+            return 0;
+        }
+    }
+    return 1;
+}
 
 int main(int argc, char *argv[]){
 	if (argc < 2){
@@ -253,17 +265,31 @@ int main(int argc, char *argv[]){
 
 	if(len_inputchar >= 2 && (input_char[0] == '0' && (input_char[1] == 'x' || input_char[1] == 'X'))){
 		//hexadecimal to unicode
-		printf("%d its hex code with 0xXXXX\n",__LINE__);
-		memmove(input_char, input_char+2, strlen(input_char)+1);  //remove first two characters
-		printf("%d unicode_result: %s\n",__LINE__, unicode_result);
+		if (is_valid_hex(input_char)) {
+			printf("%d its hex code with 0xXXXX\n",__LINE__);
+			memmove(input_char, input_char+2, strlen(input_char)+1);  //remove first two characters
+			printf("%d unicode_result: %s\n",__LINE__, unicode_result);
+			unicode_result = input_char;
+		}
+		else{
+			printf("invalid hexadecimal value\n");
+			return 1;
+		}
 	}
 	else if (len_inputchar >= 2 && input_char[1] == '+' && (input_char[0] == 'U' || input_char[0] == 'u'))
 	{
-		printf("%d its uni code with U+XXXX\n",__LINE__);
-		//unicode with U+XXXX to unicode without U+
-		memmove(input_char, input_char+2, strlen(input_char)+1);  //remove first two characters
-		printf("%d unicode_result: %s\n",__LINE__, input_char);
-		unicode_result = input_char;
+		char *endptr;
+		long int codepoint = strtol(input_char + 2, &endptr, 16);
+		if (endptr == input_char + 2 || *endptr != '\0' || codepoint < 0 || codepoint > 0x10FFFF) {
+			printf("%s is invalid Unicode code point\n", input_char);
+			return 1;
+		}
+		else{
+			printf("%d its uni code with U+XXXX\n",__LINE__);
+			memmove(input_char, input_char+2, strlen(input_char)+1);
+			printf("%d unicode_result: %s\n",__LINE__, input_char);
+			unicode_result = input_char;
+		}
 	}
 	else if (has_digit==1 && has_letter==0)
 	{
