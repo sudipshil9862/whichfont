@@ -140,19 +140,6 @@ void matchFontForUTF8(char* unicode_result, int argc, char* argv[], int defaultF
 	FcPatternDestroy(font);
 }
 
-int is_valid_hex(char* input) {
-    int len = strlen(input);
-    if (len < 3 || input[0] != '0' || tolower(input[1]) != 'x') {
-        return 0;
-    }
-    for (int i = 2; i < len; i++) {
-        if (!isxdigit(input[i])) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
 int main(int argc, char *argv[]){
 	if (argc < 2){
 		printf("Need argument UTF-8 character or hex along with %s\n", argv[0]);
@@ -227,15 +214,29 @@ int main(int argc, char *argv[]){
 
 	if(len_inputchar >= 2 && (input_char[0] == '0' && (input_char[1] == 'x' || input_char[1] == 'X'))){
 		//hexadecimal to unicode
-		if (is_valid_hex(input_char)) {
-			printf("its hex code with 0xXXXX\n");
-			input_char += 2;
-			printf("unicode_result: %s\n", input_char);
-		}
-		else{
+		input_char += 2;
+		int len_input = strlen(input_char);
+		if (len_input == 0) { //when only 0x is there then it should return false
+			printf("empty input argument\n");
+        	return 0;
+    	}
+		if(len_input > 8){
 			printf("invalid hexadecimal value\n");
-			return 1;
+			return 0;
 		}
+		for (int i = 0; i < len_input; i++) {
+        	if (!isxdigit(input_char[i])) {
+            	printf("invalid hexadecimal value\n");
+				return 0;
+        	}
+    	}
+		long long int val = strtoll(input_char, NULL, 16);
+    	if (val < 0 || val > 0x7FFFFFFF) {
+        	printf("invalid hexadecimal value\n");
+			return 0;
+    	}
+		printf("its hex code with 0xXXXX\n");
+		printf("unicode_result: %s\n", input_char);
 	}
 	else if (len_inputchar >= 2 && input_char[1] == '+' && (input_char[0] == 'U' || input_char[0] == 'u'))
 	{
