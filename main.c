@@ -4,7 +4,6 @@
 #include<stdint.h>
 #include<string.h>
 #include<ctype.h>
-#include<glib.h>
 #include<wchar.h>
 #include<locale.h>
 
@@ -116,7 +115,7 @@ void matchFontForUTF8(char* unicode_result, int argc, char* argv[], int defaultF
     } else {
         FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*) "sans-serif");
     }
-    FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);
+    //FcPatternAddBool(pattern, FC_SCALABLE, FcTrue);
     FcResult result;
     FcPattern* font = FcFontMatch(NULL, pattern, &result);
     if (font == NULL) {
@@ -213,7 +212,7 @@ int main(int argc, char *argv[]){
 	}
 
 	if(len_inputchar >= 2 && (input_char[0] == '0' && (input_char[1] == 'x' || input_char[1] == 'X'))){
-		//hexadecimal to unicode
+		//input is hexadecimal
 		input_char += 2;
 		int len_input = strlen(input_char);
 		if (len_input == 0) { //when only 0x is there then it should return false
@@ -240,6 +239,7 @@ int main(int argc, char *argv[]){
 	}
 	else if (len_inputchar >= 2 && input_char[1] == '+' && (input_char[0] == 'U' || input_char[0] == 'u'))
 	{
+		//input is unicode
 		char *endptr;
 		long int codepoint = strtol(input_char + 2, &endptr, 16);
 		if (endptr == input_char + 2 || *endptr != '\0' || codepoint < 0 || codepoint > 0x10FFFF) {
@@ -259,7 +259,7 @@ int main(int argc, char *argv[]){
 	}
 	else
 	{
-		//utf8 caharacter to unicode
+		//input is utf8 caharacter
 		printf("its utf8 character\n");
 		setlocale(LC_ALL, "");
 		wchar_t wc;
@@ -291,7 +291,6 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 
-	//now important function
 	if(option == 0){
 		matchFontForUTF8(input_char, argc, argv, defaultFamily);
 	}
