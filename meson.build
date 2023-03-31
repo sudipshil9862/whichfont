@@ -1,6 +1,6 @@
-project('matchFontForUTF8', 'c')
+project('whichfont', 'c')
 fontconfig_dep = dependency('fontconfig')
-executable('matchFontForUTF8', 'main.c',
+executable('whichfont', 'whichfont.c',
   dependencies: fontconfig_dep,
   install: true,
 )
