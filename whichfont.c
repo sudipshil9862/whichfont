@@ -254,8 +254,17 @@ int main(int argc, char *argv[]){
 	}
 	else if (has_digit==1 && has_letter==0)
 	{
-		printf("its uni code without having U+, with only digits\n");
-		printf("unicode_result: %s\n",input_char);
+		//input is unicode
+		char *endptr;
+		long int codepoint = strtol(input_char, &endptr, 16);
+		if (endptr == input_char + 2 || *endptr != '\0' || codepoint < 0 || codepoint > 0x10FFFF) {
+			printf("%s is invalid Unicode code point\n", input_char);
+			return 1;
+		}
+		else{
+			printf("its unicode digits\n");
+			printf("unicode_result: %s\n", input_char);
+		}
 	}
 	else
 	{
