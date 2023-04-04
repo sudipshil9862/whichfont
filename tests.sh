@@ -1,8 +1,7 @@
 #!/bin/bash
 
-rm test_results.txt
-meson builddir
-ninja -C builddir
+rm -f test_results.txt
+./build.sh
 
 test_cases=(
     "u+0985"
