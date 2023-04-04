@@ -31,8 +31,8 @@ output_file="test_results.txt"
 
 for test_case in "${test_cases[@]}"
 do
-    command_output=$(./builddir/matchFontForUTF8 $test_case)
-    echo "input: ./builddir/matchFontForUTF8 $test_case" >> $output_file
+    command_output=$(./builddir/whichfont $test_case)
+    echo "input: ./builddir/whichfont $test_case" >> $output_file
     echo "output: $command_output" >> $output_file
     echo "-------------------------------------------------------------------------------------------------------------------------------------" >> $output_file
 done
