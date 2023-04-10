@@ -9,149 +9,87 @@
 #include<locale.h>
 #include<unistd.h>
 
-
-void whichfont_ALL(char* unicode_result, char* argv[], int defaultFamily) {
-	//with -a
+void whichfont(char* unicode_result, char* argv[], int defaultFamily, int all, int sort){
 	FcPattern *pattern = FcPatternCreate();
 	FcCharSet *charset = FcCharSetCreate();
-    FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
+	FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
 	FcPatternAddCharSet(pattern, FC_CHARSET, charset); //add charset to font pattern
-    FcConfig *config = FcInitLoadConfigAndFonts();
+	
 	if (defaultFamily == 1) {
-        FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*) argv[2]);
-    }
-	FcResult font_result; //error handling if any so we need this font_result
-    FcObjectSet *object_set = FcObjectSetBuild(FC_FAMILY, FC_STYLE, FC_FILE, FC_INDEX, NULL);
-	FcFontSet *font_set = FcFontSort (0, pattern, FcFalse, 0, &font_result);
-	if (font_set == NULL || font_set->nfont == 0) {
-        printf("Font not found\n");
-        return;
-    }
- 	FcFontSet *fs;
+		FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*) argv[2]);
+	}
+
+	FcFontSet *fs;
 	fs = FcFontSetCreate ();
-	int j;
-	for (j = 0; j < font_set->nfont; j++)
-	{
-	    FcPattern  *font_pattern;
 
-	    font_pattern = FcFontRenderPrepare (NULL, pattern, font_set->fonts[j]);
-	    if (font_pattern)
-			FcFontSetAdd (fs, font_pattern);
-	}
-	if (fs)
-    {
-	int	j;
-	for (j = 0; j < fs->nfont; j++)
-	{
-	    FcPattern *font;
-		FcObjectSet	*os = 0;
-	    font = FcPatternFilter (fs->fonts[j], os);
-	    FcChar8 *s;
-		const FcChar8 *format = NULL;
-		format = (const FcChar8 *) "%{=fcmatch}\n";
-		s = FcPatternFormat (font, format);
-		if(s)
-		{
-			FcChar8 *family, *style;
-			FcPatternGetString(fs->fonts[j], FC_FAMILY, 0, &family);
-			FcPatternGetString(fs->fonts[j], FC_STYLE, 0, &style);
-			printf("\"%s\" \"%s\"\n", family, style);
+	FcConfigSubstitute (0, pattern, FcMatchPattern);
+    FcDefaultSubstitute (pattern);
+
+	if(all || sort){
+		//with -a or -s
+		FcResult font_result; //error handling if any so we need this font_result
+		FcObjectSet *object_set = FcObjectSetBuild(FC_FAMILY, FC_STYLE, FC_FILE, FC_INDEX, NULL);
+		FcFontSet *font_set;
+		if(all){
+			font_set = FcFontSort (0, pattern, FcFalse, 0, &font_result);
 		}
-	    FcPatternDestroy (font);
-	}
-	FcFontSetDestroy (fs);
-    }
-    FcCharSetDestroy(charset);
-    FcPatternDestroy(pattern);
-    FcObjectSetDestroy(object_set);
-    FcFontSetDestroy(font_set);
-    FcConfigDestroy(config);
-}
-
-void whichfont_SORT(char* unicode_result, char* argv[], int defaultFamily) {
-	//with -s
-	FcPattern *pattern = FcPatternCreate();
-	FcCharSet *charset = FcCharSetCreate();
-    FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
-	FcPatternAddCharSet(pattern, FC_CHARSET, charset); //add charset to font pattern
-    FcConfig *config = FcInitLoadConfigAndFonts();
-	if (defaultFamily == 1) {
-        FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*) argv[2]);
-    }
-	FcResult font_result; //error handling if any so we need this font_result
-    FcObjectSet *object_set = FcObjectSetBuild(FC_FAMILY, FC_STYLE, FC_FILE, FC_INDEX, NULL);
-	FcFontSet *font_set = FcFontSort (0, pattern, FcTrue, 0, &font_result);
-	if (font_set == NULL || font_set->nfont == 0) {
-        printf("Font not found\n");
-        return;
-    }
- 	FcFontSet *fs;
-	fs = FcFontSetCreate ();
-	int j;
-	for (j = 0; j < font_set->nfont; j++)
-	{
-	    FcPattern  *font_pattern;
-
-	    font_pattern = FcFontRenderPrepare (NULL, pattern, font_set->fonts[j]);
-	    if (font_pattern)
-			FcFontSetAdd (fs, font_pattern);
-	}
-	if (fs)
-    {
-	int	j;
-	for (j = 0; j < fs->nfont; j++)
-	{
-	    FcPattern *font;
-		FcObjectSet	*os = 0;
-	    font = FcPatternFilter (fs->fonts[j], os);
-	    FcChar8 *s;
-		const FcChar8 *format = NULL;
-		format = (const FcChar8 *) "%{=fcmatch}\n";
-		s = FcPatternFormat (font, format);
-		if(s)
+		else if (sort)
 		{
-			FcChar8 *family, *style;
-			FcPatternGetString(fs->fonts[j], FC_FAMILY, 0, &family);
-			FcPatternGetString(fs->fonts[j], FC_STYLE, 0, &style);
-			printf("\"%s\" \"%s\"\n", family, style);
+			font_set = FcFontSort (0, pattern, FcTrue, 0, &font_result);
 		}
-	    FcPatternDestroy (font);
+		if (font_set == NULL || font_set->nfont == 0) {
+			printf("Font not found\n");
+			return;
+		}
+
+		int j;
+		for (j = 0; j < font_set->nfont; j++)
+		{
+			FcPattern  *font_pattern;
+
+			font_pattern = FcFontRenderPrepare (NULL, pattern, font_set->fonts[j]);
+			if (font_pattern)
+				FcFontSetAdd (fs, font_pattern);
+		}
+		FcObjectSetDestroy(object_set);
+		FcFontSetDestroy(font_set);
 	}
-	FcFontSetDestroy (fs);
-    }
-    FcCharSetDestroy(charset);
-    FcPatternDestroy(pattern);
-    FcObjectSetDestroy(object_set);
-    FcFontSetDestroy(font_set);
-    FcConfigDestroy(config);
-}
+	else{
+		//best one font
+		FcPattern   *match;
+		FcResult result;
+		match = FcFontMatch(0, pattern, &result);
+		if(match){
+			FcFontSetAdd(fs, match);
+		}
+	}
 
-void whichfont(char* unicode_result, char* argv[], int defaultFamily) {
-    //selecting the best font
-	FcPattern* pattern = FcPatternCreate();
-	FcCharSet* charset = FcCharSetCreate();
-    FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
-	FcPatternAddCharSet(pattern, FC_CHARSET, charset);
-    FcConfig* config = FcInitLoadConfigAndFonts();
-	if (defaultFamily == 1) {
-        FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*) argv[2]);
-    }
-    FcConfigSubstitute(config, pattern, FcMatchPattern);
-    FcDefaultSubstitute(pattern);
-
-    FcResult result;
-    FcPattern* font = FcFontMatch(NULL, pattern, &result);
-    if (font == NULL) {
-        printf("Font not found\n");
-        return;
-    }
-	FcChar8 *family, *style;
-    FcPatternGetString(font, FC_FAMILY, 0, &family);
-    FcPatternGetString(font, FC_STYLE, 0, &style);
-    printf("\"%s\" \"%s\"\n", family, style);
+	//common code
+	if (fs)
+	{
+		int	j;
+		for (j = 0; j < fs->nfont; j++)
+		{
+			FcPattern *font;
+			FcObjectSet	*os = 0;
+			font = FcPatternFilter (fs->fonts[j], os);
+			FcChar8 *s;
+			const FcChar8 *format = NULL;
+			format = (const FcChar8 *) "%{=fcmatch}\n";
+			s = FcPatternFormat (font, format);
+			if(s)
+			{
+				FcChar8 *family, *style;
+				FcPatternGetString(fs->fonts[j], FC_FAMILY, 0, &family);
+				FcPatternGetString(fs->fonts[j], FC_STYLE, 0, &style);
+				printf("\"%s\" \"%s\"\n", family, style);
+			}
+			FcPatternDestroy (font);
+		}
+		FcFontSetDestroy (fs);
+	}
 	FcCharSetDestroy(charset);
 	FcPatternDestroy(pattern);
-	FcPatternDestroy(font);
 }
 
 int main(int argc, char *argv[]){
@@ -160,19 +98,21 @@ int main(int argc, char *argv[]){
 		printf("no argument is given\nexiting program...\n");
 		return 1;
 	}
+	setlocale(LC_ALL, "");
 	char *input_char = NULL;
 	int defaultFamily = 0; //sans-serif
-	int option = 0; //if -a,-s not there
+	int all = 0; //-a
+	int sort = 0; //-s
 	if ((strcmp(argv[1], "-a") == 0) || (strcmp(argv[1], "-s") == 0))
 	{
 		if(strcmp(argv[1], "-a")==0){
 			printf("-a argument is there\n");
-			option = 1; // 1 for -a
+			all = 1;
 		}
 		else if (strcmp(argv[1], "-s")==0)
 		{
 			printf("-s argument is there\n");
-			option = 2; //2 for -s
+			sort = 1;
 		}
 		else
 		{
@@ -227,21 +167,16 @@ int main(int argc, char *argv[]){
 	}
 
 	bool hexBool =  len_inputchar >= 2 && (input_char[0] == '0' && (input_char[1] == 'x' || input_char[1] == 'X'));
-    bool unicodeBool = len_inputchar >= 2 && input_char[1] == '+' && (input_char[0] == 'U' || input_char[0] == 'u');
-	
+	bool unicodeBool = len_inputchar >= 2 && input_char[1] == '+' && (input_char[0] == 'U' || input_char[0] == 'u');
+
 	if(hexBool || unicodeBool){
 		input_char += 2;
 		int len_input = strlen(input_char);
-		/*
-		printf("length of input_char %d\n", len_input);
-		char* input_copy = strdup(input_char + 2);
-		int len_copy = strlen(input_copy);
-		printf("length of input_copy %d\n", len_copy);
-		*/
+
 		if (len_input == 0) { //when input_char=0x or input_char=U+ then it should return false
 			printf("empty input argument\n");
-        	return 0;
-    	}
+			return 0;
+		}
 
 		if (hexBool)
 		{
@@ -261,8 +196,6 @@ int main(int argc, char *argv[]){
 				printf("invalid hexadecimal value\n");
 				return 0;
 			}
-			//printf("its hex code with 0xXXXX\n");
-			//printf("unicode_result: %s\n", input_char);
 		}
 		else if (unicodeBool)
 		{
@@ -274,13 +207,6 @@ int main(int argc, char *argv[]){
 				printf("%s is invalid Unicode code point\n", input_char);
 				return 0;
 			}
-			/*
-			else
-			{
-				printf("its uni code with U+XXXX\n");
-				printf("unicode_result: %s\n", input_char);
-			}
-			*/
 		}
 	}
 	else if (has_digit==1 && has_letter==0)
@@ -292,18 +218,9 @@ int main(int argc, char *argv[]){
 			printf("%s is invalid Unicode code point\n", input_char);
 			return 1;
 		}
-		/*
-		else{
-			printf("its unicode digits\n");
-			printf("unicode_result: %s\n", input_char);
-		}
-		*/
 	}
 	else
 	{
-		//input is utf8 caharacter
-		//printf("its utf8 character\n");
-		setlocale(LC_ALL, "");
 		wchar_t wc;
 		char* unicode_result = (char*) malloc(5 * sizeof(char));
 		char* p = input_char;
@@ -317,31 +234,15 @@ int main(int argc, char *argv[]){
 				return 1;
 			}
 			sprintf(unicode_result, "%04X", (unsigned int) wc);
-        	//printf("Character: %lc, Unicode: %s\n", wc, unicode_result);
+			printf("\n");
 			printf("Character: %lc\n", wc);
-			if(option == 0){
-				whichfont(unicode_result, argv, defaultFamily);
-			}
-			else if(option == 1){
-				whichfont_ALL(unicode_result, argv, defaultFamily);
-			}
-			else{
-				whichfont_SORT(unicode_result, argv, defaultFamily);
-			}
+			printf("\n");
+			whichfont(unicode_result, argv, defaultFamily, all, sort);
 			p += count;
 		}
 		free(unicode_result);
 		return 0;
 	}
-
-	if(option == 0){
-		whichfont(input_char, argv, defaultFamily);
-	}
-	else if(option == 1){
-		whichfont_ALL(input_char, argv, defaultFamily);
-	}
-	else{
-		whichfont_SORT(input_char, argv, defaultFamily);
-	}
+	whichfont(input_char, argv, defaultFamily, all, sort);
 	return 0;
 }
