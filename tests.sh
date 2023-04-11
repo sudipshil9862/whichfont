@@ -28,6 +28,9 @@ test_cases=(
 
 output_file="test_results.txt"
 
+echo "date-time: $(date '+%Y-%m-%d %H:%M:%S')" >> $output_file
+echo >> $output_file
+
 for test_case in "${test_cases[@]}"
 do
     command_output=$(./.builddir/whichfont $test_case)

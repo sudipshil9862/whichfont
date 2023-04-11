@@ -73,17 +73,10 @@ void whichfont(char* unicode_result, char* argv[], int defaultFamily, int all, i
 			FcPattern *font;
 			FcObjectSet	*os = 0;
 			font = FcPatternFilter (fs->fonts[j], os);
-			FcChar8 *s;
-			const FcChar8 *format = NULL;
-			format = (const FcChar8 *) "%{=fcmatch}\n";
-			s = FcPatternFormat (font, format);
-			if(s)
-			{
-				FcChar8 *family, *style;
-				FcPatternGetString(fs->fonts[j], FC_FAMILY, 0, &family);
-				FcPatternGetString(fs->fonts[j], FC_STYLE, 0, &style);
-				printf("\"%s\" \"%s\"\n", family, style);
-			}
+			FcChar8 *family, *style;
+			FcPatternGetString(fs->fonts[j], FC_FAMILY, 0, &family);
+			FcPatternGetString(fs->fonts[j], FC_STYLE, 0, &style);
+			printf("\"%s\" \"%s\"\n", family, style);
 			FcPatternDestroy (font);
 		}
 		FcFontSetDestroy (fs);
