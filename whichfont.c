@@ -173,11 +173,13 @@ int main(int argc, char *argv[]){
 
 	int has_digit = 0;
 	int has_letter = 0;
-	for (int i = 0; input_char[i] != '\0'; i++) {
-		if (isdigit(input_char[i])) {
-			has_digit = 1;
-		} else if (isalpha(input_char[i])) {
-			has_letter = 1;
+	if(len_inputchar > 1){
+		for (int i = 0; input_char[i] != '\0'; i++) {
+			if (isdigit(input_char[i])) {
+				has_digit = 1;
+			} else if (isalpha(input_char[i])) {
+				has_letter = 1;
+			}
 		}
 	}
 
@@ -263,6 +265,7 @@ int main(int argc, char *argv[]){
 			sprintf(unicode_result, "%04X", (unsigned int) wc);
 			printf("\n");
 			printf("Character: %lc\n", wc);
+			printf("unicode: %s\n", unicode_result);
 			printf("\n");
 			whichfont(unicode_result, argv, k_optind, all, sort);
 			p += count;
