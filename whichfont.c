@@ -10,20 +10,13 @@
 #include<unistd.h>
 #include<getopt.h>
 
-void whichfont(char* unicode_result, char* argv[], int defaultFamily, int all, int sort){
+void whichfont(char* unicode_result, char* argv[], int k_optind, int all, int sort){
 	FcPattern *pattern;
 	FcCharSet *charset;
 	FcObjectSet	*os = 0;
 	const FcChar8 *format = NULL;
-	int i;
-	if(all || sort){
-		i = 2;
-	}
-	else{
-		i = 1;
-	}
-
-	if(argv[i]){
+	
+	if(argv[k_optind]){
 		pattern = FcPatternCreate();
 		charset = FcCharSetCreate();
 		FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
@@ -34,13 +27,13 @@ void whichfont(char* unicode_result, char* argv[], int defaultFamily, int all, i
 			printf ("Unable to parse the pattern\n");
 			return;
 		}
-		while (argv[++i])
+		while (argv[++k_optind])
 		{
 			if (!os)
 			{
 				os = FcObjectSetCreate ();
 			}
-			FcObjectSetAdd (os, argv[i]);
+			FcObjectSetAdd (os, argv[k_optind]);
 		}
 	}
 	else{
@@ -141,9 +134,10 @@ int main(int argc, char *argv[]){
 	}
 	setlocale(LC_ALL, "");
 	char *input_char = NULL;
-	int defaultFamily = 0; //sans-serif
 	int all = 0; //-a
 	int sort = 0; //-s
+	int all_count = 0; //if arguments are: -a -a -a -a -a 0985
+	int sort_count = 0; //if arguments are: -s -s -s -s -s 0985
 	
 	int opt;
 	while((opt = getopt(argc,argv, "as")) != -1){
@@ -151,29 +145,29 @@ int main(int argc, char *argv[]){
 		{
 		case 'a':
 			all = 1;
+			all_count++;
 			printf("-a argument is there\n");
 			break;
 		case 's':
 			sort = 1;
+			sort_count++;
 			printf("-s argument is there\n");
 			break;
 		default:
 			printf("invalid option argument is there\n");
-			return 0;
+			return 1;
 		}
 	}
-	
-	if(all || sort){
-		if(argv[2]){
-			input_char = argv[2];
-		}
+
+	//error if arguments are `-a -s`, `-s -a`, `-a -a -a -a`, `-s -s -s -s`, `-a -a -s -a`
+	if((all && sort) || (all_count > 1) || (sort_count > 1)){
+		printf("multiple optional arguments is there\nenter either -a or -s\n");
+		return 1;
 	}
-	else if(optind < argc){
-		input_char = argv[1];
-	}
-	else {
-    	printf("No input argument found\n");
-	}
+
+	int k_optind;
+	k_optind = optind;
+	input_char = argv[k_optind];
 
 	int len_inputchar = strlen(input_char);
 
@@ -224,7 +218,6 @@ int main(int argc, char *argv[]){
 		else if (unicodeBool)
 		{
 			// input is unicode
-			
 			char *endptr;
 			long int codepoint = strtol(input_char, &endptr, 16);
 			if (endptr == input_char || *endptr != '\0' || codepoint < 0 || codepoint > 0x10FFFF)
@@ -271,12 +264,12 @@ int main(int argc, char *argv[]){
 			printf("\n");
 			printf("Character: %lc\n", wc);
 			printf("\n");
-			whichfont(unicode_result, argv, defaultFamily, all, sort);
+			whichfont(unicode_result, argv, k_optind, all, sort);
 			p += count;
 		}
 		free(unicode_result);
 		return 0;
 	}
-	whichfont(input_char, argv, defaultFamily, all, sort);
+	whichfont(input_char, argv, k_optind, all, sort);
 	return 0;
 }
