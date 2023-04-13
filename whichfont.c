@@ -8,27 +8,59 @@
 #include<wchar.h>
 #include<locale.h>
 #include<unistd.h>
+#include<getopt.h>
 
 void whichfont(char* unicode_result, char* argv[], int defaultFamily, int all, int sort){
-	FcPattern *pattern = FcPatternCreate();
-	FcCharSet *charset = FcCharSetCreate();
-	FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
-	FcPatternAddCharSet(pattern, FC_CHARSET, charset); //add charset to font pattern
-	
-	if (defaultFamily == 1) {
-		FcPatternAddString(pattern, FC_FAMILY, (const FcChar8*) argv[2]);
+	FcPattern *pattern;
+	FcCharSet *charset;
+	FcObjectSet	*os = 0;
+	const FcChar8 *format = NULL;
+	int i;
+	if(all || sort){
+		i = 2;
+	}
+	else{
+		i = 1;
 	}
 
-	FcFontSet *fs;
-	fs = FcFontSetCreate ();
+	if(argv[i]){
+		pattern = FcPatternCreate();
+		charset = FcCharSetCreate();
+		FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
+		FcPatternAddCharSet(pattern, FC_CHARSET, charset);
+
+		if (!pattern)
+		{
+			printf ("Unable to parse the pattern\n");
+			return;
+		}
+		while (argv[++i])
+		{
+			if (!os)
+			{
+				os = FcObjectSetCreate ();
+			}
+			FcObjectSetAdd (os, argv[i]);
+		}
+	}
+	else{
+		pattern = FcPatternCreate();
+	}
+
+	if(!pattern){
+		printf ("Unable to parse the pattern\n");
+		return;
+	}
 
 	FcConfigSubstitute (0, pattern, FcMatchPattern);
     FcDefaultSubstitute (pattern);
 
+	FcFontSet *fs;
+	fs = FcFontSetCreate ();
+
 	if(all || sort){
 		//with -a or -s
-		FcResult font_result; //error handling if any so we need this font_result
-		FcObjectSet *object_set = FcObjectSetBuild(FC_FAMILY, FC_STYLE, FC_FILE, FC_INDEX, NULL);
+		FcResult font_result; //error handling if any, so we need this font_result
 		FcFontSet *font_set;
 		if(all){
 			font_set = FcFontSort (0, pattern, FcFalse, 0, &font_result);
@@ -37,7 +69,7 @@ void whichfont(char* unicode_result, char* argv[], int defaultFamily, int all, i
 		{
 			font_set = FcFontSort (0, pattern, FcTrue, 0, &font_result);
 		}
-		if (font_set == NULL || font_set->nfont == 0) {
+		if (!font_set || font_set->nfont == 0) {
 			printf("Font not found\n");
 			return;
 		}
@@ -51,7 +83,6 @@ void whichfont(char* unicode_result, char* argv[], int defaultFamily, int all, i
 			if (font_pattern)
 				FcFontSetAdd (fs, font_pattern);
 		}
-		FcObjectSetDestroy(object_set);
 		FcFontSetDestroy(font_set);
 	}
 	else{
@@ -64,6 +95,19 @@ void whichfont(char* unicode_result, char* argv[], int defaultFamily, int all, i
 		}
 	}
 
+	FcCharSetDestroy(charset);
+	FcPatternDestroy(pattern);
+
+	if (!format)
+	{
+		if (os){
+			format = (const FcChar8 *) "%{=unparse}\n";
+		}
+		else{
+			format = (const FcChar8 *) "%{=fcmatch}\n";
+		}
+	}
+
 	//common code
 	if (fs)
 	{
@@ -71,18 +115,22 @@ void whichfont(char* unicode_result, char* argv[], int defaultFamily, int all, i
 		for (j = 0; j < fs->nfont; j++)
 		{
 			FcPattern *font;
-			FcObjectSet	*os = 0;
 			font = FcPatternFilter (fs->fonts[j], os);
-			FcChar8 *family, *style;
-			FcPatternGetString(fs->fonts[j], FC_FAMILY, 0, &family);
-			FcPatternGetString(fs->fonts[j], FC_STYLE, 0, &style);
-			printf("\"%s\" \"%s\"\n", family, style);
+			FcChar8 *s;
+			s = FcPatternFormat (font, format);
+			if(s){
+				printf("%s", s);
+				FcStrFree(s);
+			}
 			FcPatternDestroy (font);
 		}
 		FcFontSetDestroy (fs);
 	}
-	FcCharSetDestroy(charset);
-	FcPatternDestroy(pattern);
+
+	if(os){
+		FcObjectSetDestroy(os);
+	}
+	FcFini();
 }
 
 int main(int argc, char *argv[]){
@@ -96,55 +144,35 @@ int main(int argc, char *argv[]){
 	int defaultFamily = 0; //sans-serif
 	int all = 0; //-a
 	int sort = 0; //-s
-	if ((strcmp(argv[1], "-a") == 0) || (strcmp(argv[1], "-s") == 0))
-	{
-		if(strcmp(argv[1], "-a")==0){
-			printf("-a argument is there\n");
+	
+	int opt;
+	while((opt = getopt(argc,argv, "as")) != -1){
+		switch (opt)
+		{
+		case 'a':
 			all = 1;
-		}
-		else if (strcmp(argv[1], "-s")==0)
-		{
-			printf("-s argument is there\n");
+			printf("-a argument is there\n");
+			break;
+		case 's':
 			sort = 1;
-		}
-		else
-		{
+			printf("-s argument is there\n");
+			break;
+		default:
 			printf("invalid option argument is there\n");
 			return 0;
 		}
-		//checking other arguments
-		if (argc == 3)
-		{
+	}
+	
+	if(all || sort){
+		if(argv[2]){
 			input_char = argv[2];
-		}
-		else if(argc == 4){
-			input_char = argv[2];
-			defaultFamily = 1; //some other family
-		}
-		else if (argc == 2)
-		{
-			printf("enter utf8_character or unicode or hexadecimal\n");
-			return 0;
-		}
-		else{
-			printf("too many arguments\n");
-			return 0;
 		}
 	}
-	else{
-		if (argc == 3)
-		{
-			input_char = argv[1];
-			defaultFamily = 1; //some other family
-		}
-		else if (argc == 2)
-		{
-			input_char = argv[1];
-		}
-		else{
-			printf("too many arguments");
-			return 0;
-		}
+	else if(optind < argc){
+		input_char = argv[1];
+	}
+	else {
+    	printf("No input argument found\n");
 	}
 
 	int len_inputchar = strlen(input_char);
@@ -184,15 +212,19 @@ int main(int argc, char *argv[]){
 					return 0;
 				}
 			}
-			long int val = strtol(input_char, NULL, 16);
-			if (val < 0 || val > 0x7FFFFFFF) {
+			
+			char *endptr;
+			long int codepoint = strtol(input_char, &endptr, 16);
+			if (endptr == input_char || *endptr != '\0' || codepoint < 0 || codepoint > 0x7FFFFFFF) {
 				printf("invalid hexadecimal value\n");
 				return 0;
 			}
+			
 		}
 		else if (unicodeBool)
 		{
 			// input is unicode
+			
 			char *endptr;
 			long int codepoint = strtol(input_char, &endptr, 16);
 			if (endptr == input_char || *endptr != '\0' || codepoint < 0 || codepoint > 0x10FFFF)
@@ -200,7 +232,16 @@ int main(int argc, char *argv[]){
 				printf("%s is invalid Unicode code point\n", input_char);
 				return 0;
 			}
+			
 		}
+		/*
+		char *endptr;
+		long int codepoint = strtol(input_char, &endptr, 16);
+		if (endptr == input_char || *endptr != '\0' || codepoint < 0 || codepoint > 0x7FFFFFFF) {
+			printf("invalid hexadecimal value\n");
+			return 0;
+		}
+		*/
 	}
 	else if (has_digit==1 && has_letter==0)
 	{
