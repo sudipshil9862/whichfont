@@ -22,6 +22,8 @@ void whichfont(char* unicode_result, char* argv[], int k_optind, int ops){
 	FcCharSet *charset;
 	FcObjectSet	*os = 0;
 	const FcChar8 *format = NULL;
+
+	printf("ops: %d\n", ops);
 	
 	if(argv[k_optind]){
 		pattern = FcPatternCreate();
@@ -58,22 +60,15 @@ void whichfont(char* unicode_result, char* argv[], int k_optind, int ops){
 	FcFontSet *fs;
 	fs = FcFontSetCreate ();
 
-	if(ops == OP_ALL || ops == OP_SORT){
+	if(ops){
 		//with -a or -s
 		FcResult font_result; //error handling if any, so we need this font_result
 		FcFontSet *font_set;
-		if(ops == OP_ALL){
-			font_set = FcFontSort (0, pattern, FcFalse, 0, &font_result);
-		}
-		else if (ops == OP_SORT)
-		{
-			font_set = FcFontSort (0, pattern, FcTrue, 0, &font_result);
-		}
+			font_set = FcFontSort (0, pattern, (ops == OP_ALL) ? FcFalse : FcTrue, 0, &font_result);
 		if (!font_set || font_set->nfont == 0) {
 			printf("Font not found\n");
 			return;
 		}
-
 		int j;
 		for (j = 0; j < font_set->nfont; j++)
 		{
@@ -149,24 +144,12 @@ int main(int argc, char *argv[]){
 		switch (opt)
 		{
 		case 'a':
-			if(ops == OP_NONE){
-				ops = OP_ALL;
-				printf("-a argument is there\n");
-			}
-			else{
-				printf("multiple optional arguments is there\nenter either -a or -s\n");
-				return 1;
-			}
+			ops = OP_ALL;
+			printf("-a argument is there\n");
 			break;
 		case 's':
-			if(ops == OP_NONE){
-				ops = OP_SORT;
-				printf("-s argument is there\n");
-			}
-			else{
-				printf("multiple optional arguments is there\nenter either -a or -s\n");
-				return 1;
-			}
+			ops = OP_SORT;
+			printf("-s argument is there\n");
 			break;
 		default:
 			printf("invalid option argument is there\n");
