@@ -10,7 +10,14 @@
 #include<unistd.h>
 #include<getopt.h>
 
-void whichfont(char* unicode_result, char* argv[], int k_optind, int all, int sort){
+enum {
+		OP_NONE = 0,
+		OP_ALL,
+		OP_SORT,
+		OP_END
+};
+
+void whichfont(char* unicode_result, char* argv[], int k_optind, int ops){
 	FcPattern *pattern;
 	FcCharSet *charset;
 	FcObjectSet	*os = 0;
@@ -51,14 +58,14 @@ void whichfont(char* unicode_result, char* argv[], int k_optind, int all, int so
 	FcFontSet *fs;
 	fs = FcFontSetCreate ();
 
-	if(all || sort){
+	if(ops == OP_ALL || ops == OP_SORT){
 		//with -a or -s
 		FcResult font_result; //error handling if any, so we need this font_result
 		FcFontSet *font_set;
-		if(all){
+		if(ops == OP_ALL){
 			font_set = FcFontSort (0, pattern, FcFalse, 0, &font_result);
 		}
-		else if (sort)
+		else if (ops == OP_SORT)
 		{
 			font_set = FcFontSort (0, pattern, FcTrue, 0, &font_result);
 		}
@@ -134,35 +141,37 @@ int main(int argc, char *argv[]){
 	}
 	setlocale(LC_ALL, "");
 	char *input_char = NULL;
-	int all = 0; //-a
-	int sort = 0; //-s
-	int all_count = 0; //if arguments are: -a -a -a -a -a 0985
-	int sort_count = 0; //if arguments are: -s -s -s -s -s 0985
 	
+	int ops = OP_NONE;
+
 	int opt;
 	while((opt = getopt(argc,argv, "as")) != -1){
 		switch (opt)
 		{
 		case 'a':
-			all = 1;
-			all_count++;
-			printf("-a argument is there\n");
+			if(ops == OP_NONE){
+				ops = OP_ALL;
+				printf("-a argument is there\n");
+			}
+			else{
+				printf("multiple optional arguments is there\nenter either -a or -s\n");
+				return 1;
+			}
 			break;
 		case 's':
-			sort = 1;
-			sort_count++;
-			printf("-s argument is there\n");
+			if(ops == OP_NONE){
+				ops = OP_SORT;
+				printf("-s argument is there\n");
+			}
+			else{
+				printf("multiple optional arguments is there\nenter either -a or -s\n");
+				return 1;
+			}
 			break;
 		default:
 			printf("invalid option argument is there\n");
 			return 1;
 		}
-	}
-
-	//error if arguments are `-a -s`, `-s -a`, `-a -a -a -a`, `-s -s -s -s`, `-a -a -s -a`
-	if((all && sort) || (all_count > 1) || (sort_count > 1)){
-		printf("multiple optional arguments is there\nenter either -a or -s\n");
-		return 1;
 	}
 
 	int k_optind;
@@ -267,12 +276,12 @@ int main(int argc, char *argv[]){
 			printf("Character: %lc\n", wc);
 			printf("unicode: %s\n", unicode_result);
 			printf("\n");
-			whichfont(unicode_result, argv, k_optind, all, sort);
+			whichfont(unicode_result, argv, k_optind, ops);
 			p += count;
 		}
 		free(unicode_result);
 		return 0;
 	}
-	whichfont(input_char, argv, k_optind, all, sort);
+	whichfont(input_char, argv, k_optind, ops);
 	return 0;
 }
