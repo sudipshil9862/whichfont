@@ -17,36 +17,31 @@ enum {
 		OP_END
 };
 
-void whichfont(char* unicode_result, char* argv[], int k_optind, int ops){
+void whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 	FcPattern *pattern;
 	FcCharSet *charset;
 	FcObjectSet	*os = 0;
 	const FcChar8 *format = NULL;
-
-	printf("ops: %d\n", ops);
 	
-	if(argv[k_optind]){
-		pattern = FcPatternCreate();
-		charset = FcCharSetCreate();
-		FcCharSetAddChar(charset, (FcChar32) strtol(unicode_result, NULL, 16));
-		FcPatternAddCharSet(pattern, FC_CHARSET, charset);
+	
+	pattern = FcPatternCreate();
+	charset = FcCharSetCreate();
+	
+	FcCharSetAddChar(charset, (FcChar32) unicodepoint);
+	FcPatternAddCharSet(pattern, FC_CHARSET, charset);
 
-		if (!pattern)
-		{
-			printf ("Unable to parse the pattern\n");
-			return;
-		}
-		while (argv[++k_optind])
-		{
-			if (!os)
-			{
-				os = FcObjectSetCreate ();
-			}
-			FcObjectSetAdd (os, argv[k_optind]);
-		}
+	if (!pattern)
+	{
+		printf ("Unable to parse the pattern\n");
+		return;
 	}
-	else{
-		pattern = FcPatternCreate();
+	while (argv[++k_optind])
+	{
+		if (!os)
+		{
+			os = FcObjectSetCreate ();
+		}
+		FcObjectSetAdd (os, argv[k_optind]);
 	}
 
 	if(!pattern){
@@ -64,7 +59,7 @@ void whichfont(char* unicode_result, char* argv[], int k_optind, int ops){
 		//with -a or -s
 		FcResult font_result; //error handling if any, so we need this font_result
 		FcFontSet *font_set;
-			font_set = FcFontSort (0, pattern, (ops == OP_ALL) ? FcFalse : FcTrue, 0, &font_result);
+		font_set = FcFontSort (0, pattern, (ops == OP_ALL) ? FcFalse : FcTrue, 0, &font_result);
 		if (!font_set || font_set->nfont == 0) {
 			printf("Font not found\n");
 			return;
@@ -177,73 +172,39 @@ int main(int argc, char *argv[]){
 
 	bool hexBool =  len_inputchar >= 2 && (input_char[0] == '0' && (input_char[1] == 'x' || input_char[1] == 'X'));
 	bool unicodeBool = len_inputchar >= 2 && input_char[1] == '+' && (input_char[0] == 'U' || input_char[0] == 'u');
+	long int unicodepoint;
+	if ((hexBool || unicodeBool) || (has_digit==1 && has_letter==0)){
+		if(hexBool || unicodeBool){
+			input_char += 2;
+			int len_input = strlen(input_char);
 
-	if(hexBool || unicodeBool){
-		input_char += 2;
-		int len_input = strlen(input_char);
-
-		if (len_input == 0) { //when input_char=0x or input_char=U+ then it should return false
-			printf("empty input argument\n");
-			return 0;
-		}
-
-		if (hexBool)
-		{
-			//input is hexadecimal
-			if(len_input > 8){
-				printf("invalid hexadecimal value\n");
+			if (len_input == 0) { //when input_char=0x or input_char=U+ then it should return false
+				printf("empty input argument\n");
 				return 0;
 			}
-			for (int i = 0; i < len_input; i++) {
-				if (!isxdigit(input_char[i])) {
+
+			if (hexBool)
+			{
+				//input is hexadecimal
+				if(len_input > 8){
 					printf("invalid hexadecimal value\n");
 					return 0;
 				}
-			}
-			
-			char *endptr;
-			long int codepoint = strtol(input_char, &endptr, 16);
-			if (endptr == input_char || *endptr != '\0' || codepoint < 0 || codepoint > 0x7FFFFFFF) {
-				printf("invalid hexadecimal value\n");
-				return 0;
-			}
-			
-		}
-		else if (unicodeBool)
-		{
-			// input is unicode
-			char *endptr;
-			long int codepoint = strtol(input_char, &endptr, 16);
-			if (endptr == input_char || *endptr != '\0' || codepoint < 0 || codepoint > 0x10FFFF)
-			{
-				printf("%s is invalid Unicode code point\n", input_char);
-				return 0;
+				for (int i = 0; i < len_input; i++) {
+					if (!isxdigit(input_char[i])) {
+						printf("invalid hexadecimal value\n");
+						return 0;
+					}
+				}
 			}
 			
 		}
-		/*
-		char *endptr;
-		long int codepoint = strtol(input_char, &endptr, 16);
-		if (endptr == input_char || *endptr != '\0' || codepoint < 0 || codepoint > 0x7FFFFFFF) {
-			printf("invalid hexadecimal value\n");
-			return 0;
-		}
-		*/
-	}
-	else if (has_digit==1 && has_letter==0)
-	{
-		//input is unicode
-		char *endptr;
-		long int codepoint = strtol(input_char, &endptr, 16);
-		if (endptr == input_char || *endptr != '\0' || codepoint < 0 || codepoint > 0x10FFFF) {
-			printf("%s is invalid Unicode code point\n", input_char);
-			return 1;
-		}
-	}
+	}	
 	else
 	{
 		wchar_t wc;
 		char* unicode_result = (char*) malloc(5 * sizeof(char));
+		char *endptr;
 		char* p = input_char;
 		while (*p) {
 			int count = mbtowc(&wc, p, MB_CUR_MAX);
@@ -257,14 +218,20 @@ int main(int argc, char *argv[]){
 			sprintf(unicode_result, "%04X", (unsigned int) wc);
 			printf("\n");
 			printf("Character: %lc\n", wc);
-			printf("unicode: %s\n", unicode_result);
 			printf("\n");
-			whichfont(unicode_result, argv, k_optind, ops);
+			whichfont(strtol(unicode_result, &endptr, 16), argv, k_optind, ops);
 			p += count;
 		}
 		free(unicode_result);
 		return 0;
 	}
-	whichfont(input_char, argv, k_optind, ops);
+
+	char *endptr;
+	unicodepoint = strtol(input_char, &endptr, 16);
+	if (endptr == input_char || *endptr != '\0' || unicodepoint < 0 || unicodepoint > (hexBool ? 0x7FFFFFFF : 0x10FFFF)) {
+		printf("invalid unicodepoint\n");
+		return 1;
+	}
+	whichfont(unicodepoint, argv, k_optind, ops);
 	return 0;
 }
