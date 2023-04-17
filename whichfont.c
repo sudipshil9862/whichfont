@@ -14,6 +14,7 @@ enum {
 		OP_NONE = 0,
 		OP_ALL,
 		OP_SORT,
+		OP_HELP,
 		OP_END
 };
 
@@ -120,7 +121,7 @@ void whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 
 int main(int argc, char *argv[]){
 	if (argc < 2){
-		printf("Need argument UTF-8 character or unicode or hex along with %s\n", argv[0]);
+		printf("Need argument UTF-8 character or unicode or hex\n");
 		printf("no argument is given\nexiting program...\n");
 		return 1;
 	}
@@ -129,8 +130,15 @@ int main(int argc, char *argv[]){
 	
 	int ops = OP_NONE;
 
+	struct option longopts[] = {
+        {"all", no_argument, NULL, 'a'},
+        {"sort", no_argument, NULL, 's'},
+        {"help", no_argument, NULL, 'h'},
+        {NULL, 0, NULL, 0}
+    };
+
 	int opt;
-	while((opt = getopt(argc,argv, "as")) != -1){
+	while((opt = getopt_long(argc,argv, "ash", longopts, NULL)) != -1){
 		switch (opt)
 		{
 		case 'a':
@@ -141,10 +149,22 @@ int main(int argc, char *argv[]){
 			ops = OP_SORT;
 			printf("-s argument is there\n");
 			break;
+		case 'h':
+			ops = OP_HELP;
+			break;
 		default:
 			printf("invalid option argument is there\n");
 			return 1;
 		}
+	}
+	
+	if (ops == OP_HELP) {
+		printf("Usage: whichfont [OPTIONS]\n");
+		printf("Options:\n");
+		printf("  -a	--all		display unpruned sorted list of matches\n");
+		printf("  -s	--sort		display sorted list of matches\n");
+		printf("  -h	--help		display this help and exit\n");
+		return 0;
 	}
 
 	int k_optind;
