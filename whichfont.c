@@ -25,16 +25,16 @@ void whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 	
 	
 	pattern = FcPatternCreate();
-	charset = FcCharSetCreate();
-	
-	FcCharSetAddChar(charset, (FcChar32) unicodepoint);
-	FcPatternAddCharSet(pattern, FC_CHARSET, charset);
-
 	if (!pattern)
 	{
 		printf ("Unable to parse the pattern\n");
 		return;
 	}
+	charset = FcCharSetCreate();
+	
+	FcCharSetAddChar(charset, (FcChar32) unicodepoint);
+	FcPatternAddCharSet(pattern, FC_CHARSET, charset);
+
 	while (argv[++k_optind])
 	{
 		if (!os)
@@ -42,11 +42,6 @@ void whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 			os = FcObjectSetCreate ();
 		}
 		FcObjectSetAdd (os, argv[k_optind]);
-	}
-
-	if(!pattern){
-		printf ("Unable to parse the pattern\n");
-		return;
 	}
 
 	FcConfigSubstitute (0, pattern, FcMatchPattern);
