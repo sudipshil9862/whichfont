@@ -120,7 +120,7 @@ void whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 
 int main(int argc, char *argv[]){
 	if (argc < 2){
-		printf("Need argument UTF-8 character or hex along with %s\n", argv[0]);
+		printf("Need argument UTF-8 character or unicode or hex along with %s\n", argv[0]);
 		printf("no argument is given\nexiting program...\n");
 		return 1;
 	}
@@ -149,6 +149,10 @@ int main(int argc, char *argv[]){
 
 	int k_optind;
 	k_optind = optind;
+	if(argc == k_optind){
+		printf("input character or unicode or hex is needed\n");
+		return 1;
+	}
 	input_char = argv[k_optind];
 
 	int len_inputchar = strlen(input_char);
