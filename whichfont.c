@@ -18,7 +18,7 @@ enum {
 		OP_END
 };
 
-void whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
+char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 	FcPattern *pattern;
 	FcCharSet *charset;
 	FcObjectSet	*os = 0;
@@ -29,7 +29,7 @@ void whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 	if (!pattern)
 	{
 		printf ("Unable to parse the pattern\n");
-		return;
+		return NULL;
 	}
 	charset = FcCharSetCreate();
 	
@@ -58,7 +58,7 @@ void whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 		font_set = FcFontSort (0, pattern, (ops == OP_ALL) ? FcFalse : FcTrue, 0, &font_result);
 		if (!font_set || font_set->nfont == 0) {
 			printf("Font not found\n");
-			return;
+			return NULL;
 		}
 		int j;
 		for (j = 0; j < font_set->nfont; j++)
@@ -95,6 +95,9 @@ void whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 	}
 
 	//common code
+	char **stringList = NULL;
+	int stringCount = 0;
+
 	if (fs)
 	{
 		int	j;
@@ -105,9 +108,13 @@ void whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 			FcChar8 *s;
 			s = FcPatternFormat (font, format);
 			if(s){
-				printf("%s", s);
+				//printf("%s", s);
+				stringList = realloc(stringList, (stringCount + 1) * sizeof(char *));
+				stringList[stringCount] = strdup((const char *)s);
+				stringCount++;
 				FcStrFree(s);
 			}
+			
 			FcPatternDestroy (font);
 		}
 		FcFontSetDestroy (fs);
@@ -117,7 +124,10 @@ void whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 		FcObjectSetDestroy(os);
 	}
 	FcFini();
+	stringList[stringCount] = NULL;
+	return stringList;
 }
+
 
 int main(int argc, char *argv[]){
 	if (argc < 2){
@@ -127,6 +137,8 @@ int main(int argc, char *argv[]){
 	}
 	setlocale(LC_ALL, "");
 	char *input_char = NULL;
+	char **mystringList = NULL;
+	char **mystringListCopy = NULL;
 	
 	int ops = OP_NONE;
 
@@ -221,9 +233,35 @@ int main(int argc, char *argv[]){
 	}	
 	else
 	{
+		if(ops == OP_ALL || ops == OP_SORT){
+			wchar_t wc;
+			char* p = input_char;
+			while (*p) {
+				int count = mbtowc(&wc, p, MB_CUR_MAX);
+				if (count < 0) {
+					fprintf(stderr, "Error: invalid multibyte sequence\n");
+					return 1;
+				} else if (count == 0) {
+					fprintf(stderr, "Error: unexpected end of string\n");
+					return 1;
+				}
+				char **mystringList = whichfont((unsigned int) wc, argv, k_optind, ops);
+				printf("\n");
+				printf("Character: \"%lc\"\n", wc);
+				int m = 0;
+				while (mystringList[m]!=NULL) {
+					printf("%s", mystringList[m]);
+					free(mystringList[m]);
+					m++;
+				}
+				free(mystringList);
+				p += count;
+			}
+			return 0;
+		}
 		wchar_t wc;
-		char* unicode_result = (char*) malloc(5 * sizeof(char));
-		char *endptr;
+		wchar_t* wcList = (wchar_t*) malloc(100 * sizeof(wchar_t));
+		int wcCount = 0;
 		char* p = input_char;
 		while (*p) {
 			int count = mbtowc(&wc, p, MB_CUR_MAX);
@@ -234,14 +272,69 @@ int main(int argc, char *argv[]){
 				fprintf(stderr, "Error: unexpected end of string\n");
 				return 1;
 			}
-			sprintf(unicode_result, "%04X", (unsigned int) wc);
-			printf("\n");
-			printf("Character: %lc\n", wc);
-			printf("\n");
-			whichfont(strtol(unicode_result, &endptr, 16), argv, k_optind, ops);
+			mystringList = whichfont((unsigned int) wc, argv, k_optind, ops);
+			
+			if (mystringListCopy)
+			{
+				int areEqual = 1; // Assume they are equal
+				for (int i = 0; mystringList[i] != NULL || mystringListCopy[i] != NULL; i++) {
+					if (strcmp(mystringList[i], mystringListCopy[i]) != 0) {
+						areEqual = 0; // Not equal
+						break;
+					}
+				}
+				if(!areEqual){
+					printf("Character: ");
+					for (int i = 0; i < wcCount; i++) {
+        				printf("\"%lc\" ", wcList[i]);
+    				}
+					printf("\n");
+					int m = 0;
+					while (mystringListCopy[m]) {
+						printf("%s", mystringListCopy[m]);
+						free(mystringListCopy[m]);
+						m++;
+					}
+					free(mystringListCopy[m]);
+					free(wcList);
+					wcList = NULL;
+					wcCount = 0;
+					wcList = (wchar_t*) malloc(100 * sizeof(wchar_t));
+					int stringCount = 0;
+					mystringListCopy = realloc(mystringListCopy, (stringCount + 1) * sizeof(char *));
+					while (mystringList[stringCount]) {
+						mystringListCopy[stringCount] = strdup(mystringList[stringCount]);
+						stringCount++;
+					}
+					mystringListCopy[stringCount] = NULL;
+				}
+			}
+			else{
+				int stringCount = 0;
+				while (mystringList[stringCount]) {
+					mystringListCopy = realloc(mystringListCopy, (stringCount + 1) * sizeof(char *));
+					mystringListCopy[stringCount] = strdup(mystringList[stringCount]);
+					stringCount++;
+				}
+				mystringListCopy[stringCount] = NULL;
+			}
+			wcList[wcCount++] = wc;
 			p += count;
 		}
-		free(unicode_result);
+		printf("Character: ");
+		for (int i = 0; i < wcCount; i++) {
+			printf("\"%lc\" ", wcList[i]);
+		}
+		printf("\n");
+		int m = 0;
+		while (mystringListCopy[m]) {
+			printf("%s", mystringListCopy[m]);
+			free(mystringListCopy[m]);
+			m++;
+		}
+		free(mystringList);
+		free(mystringListCopy);
+		free(wcList);
 		return 0;
 	}
 
@@ -251,6 +344,13 @@ int main(int argc, char *argv[]){
 		printf("invalid unicodepoint\n");
 		return 1;
 	}
-	whichfont(unicodepoint, argv, k_optind, ops);
+	mystringList = whichfont(unicodepoint, argv, k_optind, ops);
+	int n = 0;
+	while (mystringList[n]) {
+		printf("%s", mystringList[n]);
+		free(mystringList[n]);
+		n++;
+	}
+	free(mystringList);
 	return 0;
 }
