@@ -46,7 +46,7 @@ char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 	}
 
 	FcConfigSubstitute (0, pattern, FcMatchPattern);
-    FcDefaultSubstitute (pattern);
+    	FcDefaultSubstitute (pattern);
 
 	FcFontSet *fs;
 	fs = FcFontSetCreate ();
@@ -108,7 +108,6 @@ char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 			FcChar8 *s;
 			s = FcPatternFormat (font, format);
 			if(s){
-				//printf("%s", s);
 				stringList = realloc(stringList, (stringCount + 1) * sizeof(char *));
 				stringList[stringCount] = strdup((const char *)s);
 				stringCount++;
@@ -124,6 +123,7 @@ char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 		FcObjectSetDestroy(os);
 	}
 	FcFini();
+	stringList = realloc(stringList, (stringCount + 1) * sizeof(char *));
 	stringList[stringCount] = NULL;
 	return stringList;
 }
