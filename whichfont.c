@@ -247,7 +247,7 @@ int main(int argc, char *argv[]){
 				}
 				char **mystringList = whichfont((unsigned int) wc, argv, k_optind, ops);
 				printf("\n");
-				printf("Character: \"%lc\"\n", wc);
+				printf("Character: %lc\n", wc);
 				int m = 0;
 				while (mystringList[m]!=NULL) {
 					printf("%s", mystringList[m]);
@@ -286,7 +286,7 @@ int main(int argc, char *argv[]){
 				if(!areEqual){
 					printf("Character: ");
 					for (int i = 0; i < wcCount; i++) {
-        				printf("\"%lc\" ", wcList[i]);
+        				printf("%lc", wcList[i]);
     				}
 					printf("\n");
 					int m = 0;
@@ -323,7 +323,7 @@ int main(int argc, char *argv[]){
 		}
 		printf("Character: ");
 		for (int i = 0; i < wcCount; i++) {
-			printf("\"%lc\" ", wcList[i]);
+			printf("%lc", wcList[i]);
 		}
 		printf("\n");
 		int m = 0;
