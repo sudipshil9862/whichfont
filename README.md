@@ -1,16 +1,14 @@
 # whichfont
-## Small tool to query a font for certain code point
+## Querying Fontconfig
 
-At times, we might need to determine the font used to render a particular code point. Although we can use the `fc-match :charset=...` command to get this information, it works only for Unicode. Therefore, to use it with UTF-8 character codes, we first need to convert them to Unicode.
-
-Here I'm presenting a new project that aims to help you determine the font used to render a particular code point. One of the unique features of this tool is its ability to accept input in any format, including `UTF-8 characters`, `Unicode`, or `hexadecimal code points`. This makes it a versatile tool for users who need to work with different types of character encodings.
+Introducing a new project that simplifies the process of determining the font used to render a specific code point. Unlike the `fc-match :charset=... command`, which only works for `Unicode`, this tool can handle input in various formats, such as `UTF-8 characters`, `Unicode`, or `hexadecimal code points`. This versatility makes it a valuable tool for users who work with different character encodings.
 
 ## User Guidelines:
 1. To get started, To get started, you need to use Meson and Ninja to build the project. Meson is a build system that generates build files for Ninja, which is a build tool that builds the project. To build the project. simply run:
     ```
     ./build.sh
     ```
-    or run manually using belo commands:
+    or run manually using below commands:
     ```
     meson setup .builddir
     ```
@@ -21,7 +19,7 @@ Here I'm presenting a new project that aims to help you determine the font used 
 
 2. Once you have built the project, you can use the tool to input the code point you want to query. The output will show you the font/fonts used to render that code point. To use the tool, run:
     ```
-    ./.builddir/whichfont कें
+    ./.builddir/whichfont your_input
     ```
 
 3. Input can be in any format, including UTF-8 characters, Unicode, or hexadecimal code points. Examples include:

@@ -173,7 +173,7 @@ int main(int argc, char *argv[]){
 	if (ops == OP_HELP) {
 		printf("Usage: whichfont [OPTIONS]\n");
 		printf("Options:\n");
-		printf("  -a	--all		display unpruned sorted list of matches\n");
+		printf("  -a	--all		display all the available matches for the specified font attribute(s)\n");
 		printf("  -s	--sort		display sorted list of matches\n");
 		printf("  -h	--help		display this help and exit\n");
 		return 0;
