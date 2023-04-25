@@ -171,11 +171,17 @@ int main(int argc, char *argv[]){
 	}
 	
 	if (ops == OP_HELP) {
-		printf("Usage: whichfont [OPTIONS]\n");
-		printf("Options:\n");
+		printf("Usage: whichfont [OPTIONS] [INPUT] [FONTNAME] [OTHER PARAMETERS]\n");
+		printf("[Input]:\n");
+		printf("  1. UTF-8 character  2. UTF-8 hex code  3. Unicode\n");
+		printf("[Options]:\n");
 		printf("  -a	--all		display all the available matches for the specified font attribute(s)\n");
 		printf("  -s	--sort		display sorted list of matches\n");
 		printf("  -h	--help		display this help and exit\n");
+		printf("[FontName]: \n\tIt can be anything like 'serif', 'monospace', by default 'sans-serif' if no font-name is given\n");
+		printf("If you wanna give other parameters then follow this page:\n");
+		printf("https://www.freedesktop.org/software/fontconfig/fontconfig-devel/x19.html\n");
+		printf("Best of luck using the 'whichfont' tool!\n");
 		return 0;
 	}
 
