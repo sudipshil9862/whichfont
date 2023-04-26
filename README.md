@@ -1,7 +1,7 @@
 # whichfont
 ## Querying Fontconfig
 
-Introducing a new project that simplifies the process of determining the font used to render a specific code point. Unlike the `fc-match :charset=... command`, which only works for `Unicode`, this tool can handle input in various formats, such as `UTF-8 characters`, `Unicode`, or `hexadecimal code points`. This versatility makes it a valuable tool for users who work with different character encodings.
+Introducing a new project that simplifies the process of determining the font used to render a specific code point. Unlike the `fc-match :charset=... command`, which only works for `Unicode`, this tool can handle input in various formats, such as `UTF-8 characters`, `Unicode`. This versatility makes it a valuable tool for users who work with different character encodings.
 
 ## User Guidelines:
 1. To get started, To get started, you need to use Meson and Ninja to build the project. Meson is a build system that generates build files for Ninja, which is a build tool that builds the project. To build the project. simply run:
@@ -19,23 +19,38 @@ Introducing a new project that simplifies the process of determining the font us
 
 2. Once you have built the project, you can use the tool to input the code point you want to query. The output will show you the font/fonts used to render that code point. To use the tool, run:
     ```
-    ./.builddir/whichfont your_input
+    ./.builddir/whichfont <your_input>
+    ```
+3. The easy and best way is to run `run.sh` script like: `./run.sh`. This will build and run simultaneously like:
+    ```
+    ./run.sh <your_input>
     ```
 
-3. Input can be in any format, including UTF-8 characters, Unicode, or hexadecimal code points. Examples include:
-    `कें`, `u+0985`, `U+0985`, `U+0985sudiphex`, `U+sudip`, `0x0985`, `0X0985`, `0x0985sudiphex`, `0xsudip`, `0985`, `অah😀`, `A`, `😀`
+3. Input can be in any format, including UTF-8 characters, Unicode. Examples include:
+    `कें`, `u+0985`, `U+0985`, `u+0985`, `U+sudip`, `0x0985`, `0X0985`, `0xsudip`, `0985`, `অah😀`, `RED`, `A`, `😀`
  
-4. Also you can use options like `-a` and `-s` like: 
+4. Also you can use options like `-a` and `-s` like: ./.builddir/whichfont [option] <your_input> [option]
     ```
-    ./.builddir/whichfont -a कें
+    ./run.sh -a कें
     ``` 
     or 
     ```
-    ./.builddir/whichfont -s অah😀
+    ./run.sh -s অah😀
     ```
     `-a`: This option specifies that fc-match should return all fonts that match the given pattern, sorted in order of decreasing priority. This can be useful if you want to see all the possible fonts that could be used to render a given character.
 
-    `-s`: This option specifies that fc-match should return only the name of the font that best matches the given pattern. This is the default behavior of fc-match, but it can be useful to explicitly specify the -s option if you want to make sure that only the best match is returned.
+    `-s`: This option specifies that fc-match should return all the best sorted list of fonts match for a given font pattern or font name.
+
+5. Another option can be [font name]:
+   FontName can be anything like 'serif', 'monospace', by default 'sans-serif' if no font-name is given.
+   ```
+   ./run.sh -s <your_input> serif
+   ```
+
+6. For instant help use: `-h` or `--help`
+    ```
+     ./run.sh --help
+    ```
 
 ## NOTE: 
 
