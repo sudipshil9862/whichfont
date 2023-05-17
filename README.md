@@ -3,6 +3,9 @@
 
 Introducing a new project that simplifies the process of determining the font used to render a specific code point. Unlike the `fc-match :charset=... command`, which only works for `Unicode`, this tool can handle input in various formats, such as `UTF-8 characters`, `Unicode`. This versatility makes it a valuable tool for users who work with different character encodings.
 
+### Note for Fedora users: please use `whichfont` instead of using `./.builddir/whichfont` or `./run.sh`. 
+### Only github users will use `./.builddir/whichfont` or `./run.sh`
+
 ## User Guidelines:
 1. To get started, To get started, you need to use Meson and Ninja to build the project. Meson is a build system that generates build files for Ninja, which is a build tool that builds the project. To build the project. simply run:
     ```

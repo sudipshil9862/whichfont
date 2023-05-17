@@ -178,7 +178,6 @@ int main(int argc, char *argv[]){
 		printf("  -a	--all		display all the available matches for the specified font attribute(s)\n");
 		printf("  -s	--sort		display sorted list of matches\n");
 		printf("  -h	--help		display this help and exit\n");
-		printf("[FontName]: \n\tIt can be anything like 'serif', 'monospace', by default 'sans-serif' if no font-name is given\n");
 		printf("If you wanna give other parameters then follow this page:\n");
 		printf("https://www.freedesktop.org/software/fontconfig/fontconfig-devel/x19.html\n");
 		printf("Learn more about whichfont: https://github.com/sudipshil9862/whichfont/blob/main/README.md\n");
