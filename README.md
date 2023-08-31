@@ -54,7 +54,9 @@ Introducing a new project that simplifies the process of determining the font us
    ./run.sh -f "Noto Sans Bengali" 0985 
    ```
 
-6. For instant help use: `-h` or `--help`
+6. Display unicode: `./run.sh -u -s অA`  or `./run.sh -u অA`
+ 
+7. For instant help use: `-h` or `--help`
     ```
      ./run.sh --help
     ```

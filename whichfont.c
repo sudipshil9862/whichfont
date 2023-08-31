@@ -149,6 +149,7 @@ int main(int argc, char *argv[]){
 	char **mystringList = NULL;
 	char **mystringListCopy = NULL;
 	char *fontfamily = NULL;
+	int hexprint = 0;
 	
 	int ops = OP_NONE;
 
@@ -163,7 +164,7 @@ int main(int argc, char *argv[]){
 	
 
 	int opt;
-	while((opt = getopt_long(argc,argv, "asfh", longopts, NULL)) != -1){
+	while((opt = getopt_long(argc,argv, "asfuh", longopts, NULL)) != -1){
 		switch (opt)
 		{
 		case 'a':
@@ -172,7 +173,6 @@ int main(int argc, char *argv[]){
 				return 1;
 			}
 			ops = OP_ALL;
-			//printf("-a argument is there\n");
 			break;
 		case 's':
 			if (ops==OP_ALL || ops==OP_FONTFAMILY || ops==OP_HELP){
@@ -180,7 +180,6 @@ int main(int argc, char *argv[]){
 				return 1;
 			}
 			ops = OP_SORT;
-			//printf("-s argument is there\n");
 			break;
 		case 'f':
 			if (ops==OP_ALL || ops==OP_SORT || ops==OP_HELP){
@@ -188,7 +187,9 @@ int main(int argc, char *argv[]){
 				return 1;
 			}
 			ops = OP_FONTFAMILY;
-			//printf("-f fontfamily is there\n");
+                	break;
+                case 'u':
+                	hexprint = 1;
                 	break;
 		case 'h':
 			if (ops==OP_ALL || ops==OP_SORT || ops==OP_FONTFAMILY){
@@ -212,6 +213,7 @@ int main(int argc, char *argv[]){
 		printf("  -a	--all		display all the available matches for the specified font attribute(s)\n");
 		printf("  -s	--sort		display sorted list of matches\n");
 		printf("  -f	--font		specify the fontname\n");
+		printf("  -u	--uprint	display unicodepoint\n");
 		printf("  -h	--help		display this help and exit\n");
 		printf("If you wanna give other parameters then follow this page:\n");
 		printf("https://www.freedesktop.org/software/fontconfig/fontconfig-devel/x19.html\n");
@@ -247,7 +249,7 @@ int main(int argc, char *argv[]){
 		if (fontfamily != NULL) {
 			strcpy(fontfamily, argv[k_optind]);
 		} else {
-			// Handle memory allocation failure
+			// handling memory allocation failure
 			fprintf(stderr, "Memory allocation failed for fontfamily.\n");
 			exit(EXIT_FAILURE);
 		}
@@ -322,7 +324,13 @@ int main(int argc, char *argv[]){
 				}
 				char **mystringList = whichfont((unsigned int) wc, argv, k_optind, ops, fontfamily);
 				printf("\n");
-				printf("Character: %lc\n", wc);
+				printf("Character: %lc", wc);
+				if(hexprint == 1){
+					printf("\nunicode: U+%04X\n",(unsigned int) wc);
+				}
+				else{
+					printf("\n");
+				}
 				int m = 0;
 				while (mystringList[m]!=NULL) {
 					printf("%s", mystringList[m]);
@@ -359,11 +367,16 @@ int main(int argc, char *argv[]){
 					}
 				}
 				if(!areEqual){
-					printf("Character: ");
+					printf("\nCharacter: ");
 					for (int i = 0; i < wcCount; i++) {
-        				printf("%lc", wcList[i]);
-    				}
-					printf("\n");
+        					printf("%lc", wcList[i]);
+						if(hexprint == 1){
+							printf("\nunicode: U+%04X\n",(unsigned int) wc);
+						}
+						else{
+							printf("\n");
+						}
+    					}
 					int m = 0;
 					while (mystringListCopy[m]) {
 						printf("%s", mystringListCopy[m]);
@@ -396,11 +409,16 @@ int main(int argc, char *argv[]){
 			wcList[wcCount++] = wc;
 			p += count;
 		}
-		printf("Character: ");
+		printf("\nCharacter: ");
 		for (int i = 0; i < wcCount; i++) {
 			printf("%lc", wcList[i]);
+			if(hexprint == 1){
+				printf("\nunicode: U+%04X\n",(unsigned int) wc);
+			}
+			else{
+				printf("\n");
+			}
 		}
-		printf("\n");
 		int m = 0;
 		while (mystringListCopy[m]) {
 			printf("%s", mystringListCopy[m]);
