@@ -14,11 +14,12 @@ enum {
 		OP_NONE = 0,
 		OP_ALL,
 		OP_SORT,
+		OP_FONTFAMILY,
 		OP_HELP,
 		OP_END
 };
 
-char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
+char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops, const char* fontfamily){
 	FcPattern *pattern;
 	FcCharSet *charset;
 	FcObjectSet	*os = 0;
@@ -44,6 +45,13 @@ char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 		}
 		FcObjectSetAdd (os, argv[k_optind]);
 	}
+	
+	if (ops == OP_FONTFAMILY && fontfamily) {
+        	FcPatternAddString(pattern, FC_FAMILY, (FcChar8*)fontfamily);
+    	}
+    	else{
+    		FcPatternAddString(pattern, FC_FAMILY, (FcChar8*)"sans-serif");
+    	}
 
 	FcConfigSubstitute (0, pattern, FcMatchPattern);
     	FcDefaultSubstitute (pattern);
@@ -51,7 +59,7 @@ char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 	FcFontSet *fs;
 	fs = FcFontSetCreate ();
 
-	if(ops){
+	if(ops==OP_ALL || ops==OP_SORT){
 		//with -a or -s
 		FcResult font_result; //error handling if any, so we need this font_result
 		FcFontSet *font_set;
@@ -71,7 +79,7 @@ char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops){
 		}
 		FcFontSetDestroy(font_set);
 	}
-	else{
+	else{//for -f and if no option
 		//best one font
 		FcPattern   *match;
 		FcResult result;
@@ -135,33 +143,58 @@ int main(int argc, char *argv[]){
 		printf("no argument is given\nexiting program...\n");
 		return 1;
 	}
+	
 	setlocale(LC_ALL, "");
 	char *input_char = NULL;
 	char **mystringList = NULL;
 	char **mystringListCopy = NULL;
+	char *fontfamily = NULL;
 	
 	int ops = OP_NONE;
 
 	struct option longopts[] = {
         {"all", no_argument, NULL, 'a'},
         {"sort", no_argument, NULL, 's'},
+        {"font", no_argument, NULL, 'f'},
         {"help", no_argument, NULL, 'h'},
         {NULL, 0, NULL, 0}
-    };
+    	};
+    	
+	
 
 	int opt;
-	while((opt = getopt_long(argc,argv, "ash", longopts, NULL)) != -1){
+	while((opt = getopt_long(argc,argv, "asfh", longopts, NULL)) != -1){
 		switch (opt)
 		{
 		case 'a':
+			if (ops==OP_SORT || ops==OP_FONTFAMILY || ops==OP_HELP){
+				printf("-a is not acceptable with -s or -f or -h\n");
+				return 1;
+			}
 			ops = OP_ALL;
-			printf("-a argument is there\n");
+			//printf("-a argument is there\n");
 			break;
 		case 's':
+			if (ops==OP_ALL || ops==OP_FONTFAMILY || ops==OP_HELP){
+				printf("-s is not acceptable with -a or -f or -h\n");
+				return 1;
+			}
 			ops = OP_SORT;
-			printf("-s argument is there\n");
+			//printf("-s argument is there\n");
 			break;
+		case 'f':
+			if (ops==OP_ALL || ops==OP_SORT || ops==OP_HELP){
+				printf("-f is not acceptable with -a or -s or -h\n");
+				return 1;
+			}
+			ops = OP_FONTFAMILY;
+			//printf("-f fontfamily is there\n");
+                	break;
 		case 'h':
+			if (ops==OP_ALL || ops==OP_SORT || ops==OP_FONTFAMILY){
+				printf("-h is not acceptable with -a or -s or -f\n");
+				return 1;
+			}
 			ops = OP_HELP;
 			break;
 		default:
@@ -177,20 +210,56 @@ int main(int argc, char *argv[]){
 		printf("[Options]:\n");
 		printf("  -a	--all		display all the available matches for the specified font attribute(s)\n");
 		printf("  -s	--sort		display sorted list of matches\n");
+		printf("  -f	--font		specify the fontname\n");
 		printf("  -h	--help		display this help and exit\n");
 		printf("If you wanna give other parameters then follow this page:\n");
 		printf("https://www.freedesktop.org/software/fontconfig/fontconfig-devel/x19.html\n");
 		printf("Learn more about whichfont: https://github.com/sudipshil9862/whichfont/blob/main/README.md\n");
 		return 0;
 	}
-
+	
+	
+	
 	int k_optind;
 	k_optind = optind;
-	if(argc == k_optind){
-		printf("input character or unicode is needed\n");
-		return 1;
+	
+	if(ops == OP_FONTFAMILY){
+		if(argc == k_optind){
+			printf("input character or unicode is needed\n");
+			return 1;
+		}
+		if(argc == k_optind+1){
+			printf("please specify both fontname and unicode\n");
+			return 1;
+		}
 	}
-	input_char = argv[k_optind];
+	else{
+		if(argc == k_optind){
+			printf("input character or unicode is needed\n");
+			return 1;
+		}
+	}
+	
+	
+	if(ops == OP_FONTFAMILY){
+		fontfamily = (char *)malloc(strlen(argv[k_optind]) + 1); // +1 for the null terminator
+		if (fontfamily != NULL) {
+			strcpy(fontfamily, argv[k_optind]);
+		} else {
+			// Handle memory allocation failure
+			fprintf(stderr, "Memory allocation failed for fontfamily.\n");
+			exit(EXIT_FAILURE);
+		}
+		k_optind++;
+		//printf("k_optind: %d, characters: %s\n", k_optind, argv[k_optind]);
+		//printf("argc: %d, k_optind: %d\n", argc, k_optind);
+		input_char = argv[k_optind];
+	}
+	else{
+		input_char = argv[k_optind];
+	}
+	
+	printf("input_char: %s\n", input_char);
 
 	int len_inputchar = strlen(input_char);
 
@@ -250,7 +319,7 @@ int main(int argc, char *argv[]){
 					fprintf(stderr, "Error: unexpected end of string\n");
 					return 1;
 				}
-				char **mystringList = whichfont((unsigned int) wc, argv, k_optind, ops);
+				char **mystringList = whichfont((unsigned int) wc, argv, k_optind, ops, fontfamily);
 				printf("\n");
 				printf("Character: %lc\n", wc);
 				int m = 0;
@@ -277,7 +346,7 @@ int main(int argc, char *argv[]){
 				fprintf(stderr, "Error: unexpected end of string\n");
 				return 1;
 			}
-			mystringList = whichfont((unsigned int) wc, argv, k_optind, ops);
+			mystringList = whichfont((unsigned int) wc, argv, k_optind, ops, fontfamily);
 			
 			if (mystringListCopy)
 			{
@@ -349,7 +418,7 @@ int main(int argc, char *argv[]){
 		printf("invalid unicodepoint\n");
 		return 1;
 	}
-	mystringList = whichfont(unicodepoint, argv, k_optind, ops);
+	mystringList = whichfont(unicodepoint, argv, k_optind, ops, fontfamily);
 	int n = 0;
 	while (mystringList[n]) {
 		printf("%s", mystringList[n]);

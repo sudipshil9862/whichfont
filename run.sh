@@ -8,4 +8,5 @@ else
     ninja --quiet -C $BUILDDIR
 fi
 
-$BUILDDIR/whichfont $*
+"$BUILDDIR/whichfont" "$@"
+#$BUILDDIR/whichfont $*
