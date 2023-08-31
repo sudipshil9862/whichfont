@@ -47,7 +47,11 @@ Introducing a new project that simplifies the process of determining the font us
 5. Another option can be [font name]:
    FontName can be anything like 'serif', 'monospace', by default 'sans-serif' if no font-name is given.
    ```
-   ./run.sh -s <your_input> serif
+   ./run.sh -f "FONTNAME" <your_input>
+   ```
+   example: 
+   ```   
+   ./run.sh -f "Noto Sans Bengali" 0985 
    ```
 
 6. For instant help use: `-h` or `--help`

@@ -204,7 +204,8 @@ int main(int argc, char *argv[]){
 	}
 	
 	if (ops == OP_HELP) {
-		printf("Usage: whichfont [OPTIONS] <INPUT> [OTHER PARAMETERS]\n");
+		printf("Usage: whichfont [OPTION] <INPUT> [OTHER PARAMETERS]\n");
+		printf("fontname feature usage: whichfont -f 'FONTNAME' <INPUT> [OTHER PARAMETERS]\n");
 		printf("<Input>:\n");
 		printf("  1. UTF-8 character or Unicode\n");
 		printf("[Options]:\n");
