@@ -157,6 +157,7 @@ int main(int argc, char *argv[]){
         {"all", no_argument, NULL, 'a'},
         {"sort", no_argument, NULL, 's'},
         {"font", no_argument, NULL, 'f'},
+        {"unicode", no_argument, NULL, 'u'},
         {"help", no_argument, NULL, 'h'},
         {NULL, 0, NULL, 0}
     	};
