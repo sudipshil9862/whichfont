@@ -262,7 +262,7 @@ int main(int argc, char *argv[]){
 		input_char = argv[k_optind];
 	}
 	
-	printf("input_char: %s\n", input_char);
+	//printf("input_char: %s\n", input_char);
 
 	int len_inputchar = strlen(input_char);
 
@@ -324,9 +324,9 @@ int main(int argc, char *argv[]){
 				}
 				char **mystringList = whichfont((unsigned int) wc, argv, k_optind, ops, fontfamily);
 				printf("\n");
-				printf("Character: %lc", wc);
+				printf("Character: %lc ", wc);
 				if(hexprint == 1){
-					printf("\nunicode: U+%04X\n",(unsigned int) wc);
+					printf("unicode: U+%04X\n",(unsigned int) wc);
 				}
 				else{
 					printf("\n");
@@ -367,16 +367,14 @@ int main(int argc, char *argv[]){
 					}
 				}
 				if(!areEqual){
-					printf("\nCharacter: ");
 					for (int i = 0; i < wcCount; i++) {
-        					printf("%lc", wcList[i]);
+        					printf("\nCharacter: ");
+						printf("%lc ", wcList[i]);
 						if(hexprint == 1){
-							printf("\nunicode: U+%04X\n",(unsigned int) wc);
-						}
-						else{
-							printf("\n");
+							printf("unicode: U+%04X",(unsigned int) wcList[i]);
 						}
     					}
+					printf("\n");
 					int m = 0;
 					while (mystringListCopy[m]) {
 						printf("%s", mystringListCopy[m]);
@@ -411,9 +409,9 @@ int main(int argc, char *argv[]){
 		}
 		printf("\nCharacter: ");
 		for (int i = 0; i < wcCount; i++) {
-			printf("%lc", wcList[i]);
+			printf("%lc ", wcList[i]);
 			if(hexprint == 1){
-				printf("\nunicode: U+%04X\n",(unsigned int) wc);
+				printf("unicode: U+%04X\n",(unsigned int) wcList[i]);
 			}
 			else{
 				printf("\n");
