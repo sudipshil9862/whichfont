@@ -213,7 +213,7 @@ int main(int argc, char *argv[]){
 		printf("  -a	--all		display all the available matches for the specified font attribute(s)\n");
 		printf("  -s	--sort		display sorted list of matches\n");
 		printf("  -f	--font		specify the fontname\n");
-		printf("  -u	--uprint	display unicodepoint\n");
+		printf("  -u	--unicode	display unicodepoint\n");
 		printf("  -h	--help		display this help and exit\n");
 		printf("If you wanna give other parameters then follow this page:\n");
 		printf("https://www.freedesktop.org/software/fontconfig/fontconfig-devel/x19.html\n");
