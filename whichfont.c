@@ -325,7 +325,12 @@ int main(int argc, char *argv[]){
 				}
 				char **mystringList = whichfont((unsigned int) wc, argv, k_optind, ops, fontfamily);
 				printf("\n");
-				printf("Character: %lc ", wc);
+				if (!iswprint((wint_t)wc)) {
+					printf("Character: \"not a printable character\" ");
+				}
+				else{
+					printf("Character: \"%lc\" ", wc);
+				}
 				if(hexprint == 1){
 					printf("unicode: U+%04X\n",(unsigned int) wc);
 				}
@@ -370,7 +375,12 @@ int main(int argc, char *argv[]){
 				if(!areEqual){
 					for (int i = 0; i < wcCount; i++) {
         					printf("\nCharacter: ");
-						printf("%lc ", wcList[i]);
+						if (!iswprint((wint_t)wcList[i])) {
+							printf("\"not a printable character\" ");
+						}
+						else{
+							printf("\"%lc\" ", wcList[i]);
+						}
 						if(hexprint == 1){
 							printf("unicode: U+%04X",(unsigned int) wcList[i]);
 						}
@@ -408,9 +418,15 @@ int main(int argc, char *argv[]){
 			wcList[wcCount++] = wc;
 			p += count;
 		}
-		printf("\nCharacter: ");
+		printf("\n");
 		for (int i = 0; i < wcCount; i++) {
-			printf("%lc ", wcList[i]);
+			printf("Character: ");
+			if (!iswprint((wint_t)wcList[i])) {
+				printf("\"not a printable character\" ");
+			}
+			else{
+				printf("\"%lc\" ", wcList[i]);
+			}
 			if(hexprint == 1){
 				printf("unicode: U+%04X\n",(unsigned int) wcList[i]);
 			}
