@@ -6,6 +6,7 @@
 #include<stdbool.h>
 #include<ctype.h>
 #include<wchar.h>
+#include<wctype.h>
 #include<locale.h>
 #include<unistd.h>
 #include<getopt.h>
@@ -136,6 +137,28 @@ char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops, con
 	return stringList;
 }
 
+char* wcharToString(int charvalue){
+	//definin hash table
+	const char *charMapping[] = {
+		[0] = "\"\\0\"",
+		[7] = "\"\\a\"",
+		[8] = "\"\\b\"",
+		[9] = "\"\\t\"",
+		[10] = "\"\\n\"",
+		[11] = "\"\\v\"",
+		[12] = "\"\\f\"",
+		[13] = "\"\\r\"",
+		[27] = "\"\\e\"",
+		[92] = "\\\\"	
+	};
+	if(charMapping[charvalue] != NULL){
+		return strdup(charMapping[charvalue]);
+	}
+	else{
+		return strdup("non-printable character");
+	}
+	
+}
 
 int main(int argc, char *argv[]){
 	if (argc < 2){
@@ -326,10 +349,14 @@ int main(int argc, char *argv[]){
 				char **mystringList = whichfont((unsigned int) wc, argv, k_optind, ops, fontfamily);
 				printf("\n");
 				if (!iswprint((wint_t)wc)) {
-					printf("Character: \"not a printable character\" ");
+					//printf("\"not a printable character\" ");
+					char* charString = wcharToString((unsigned int)wc);
+					printf("%s ", charString);
+                			free(charString);
+					//printf("\"\\x%02X\" ", (unsigned int)wc);
 				}
 				else{
-					printf("Character: \"%lc\" ", wc);
+					printf("\"%lc\" ", wc);
 				}
 				if(hexprint == 1){
 					printf("unicode: U+%04X\n",(unsigned int) wc);
@@ -374,9 +401,20 @@ int main(int argc, char *argv[]){
 				}
 				if(!areEqual){
 					for (int i = 0; i < wcCount; i++) {
-        					printf("\nCharacter: ");
+        					printf("\n");
+        					/*
 						if (!iswprint((wint_t)wcList[i])) {
-							printf("\"not a printable character\" ");
+							//printf("\"not a printable character\" ");
+							printf("\"\\x%02X\" ", (unsigned int)wc);
+						}
+						else{
+							printf("\"%lc\" ", wcList[i]);
+						}
+						*/
+						if (!iswprint((wint_t)wcList[i])) {
+							char* charString = wcharToString((unsigned int)wcList[i]);
+							printf("%s ", charString);
+							free(charString);
 						}
 						else{
 							printf("\"%lc\" ", wcList[i]);
@@ -420,9 +458,19 @@ int main(int argc, char *argv[]){
 		}
 		printf("\n");
 		for (int i = 0; i < wcCount; i++) {
-			printf("Character: ");
+			/*
 			if (!iswprint((wint_t)wcList[i])) {
-				printf("\"not a printable character\" ");
+				//printf("\"not a printable character\" ");
+				printf("\"\\x%02X\" ", (unsigned int)wc);
+			}
+			else{
+				printf("\"%lc\" ", wcList[i]);
+			}
+			*/
+			if (!iswprint((wint_t)wcList[i])) {
+				char* charString = wcharToString((unsigned int)wcList[i]);
+				printf("%s ", charString);
+				free(charString);
 			}
 			else{
 				printf("\"%lc\" ", wcList[i]);
