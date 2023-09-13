@@ -414,11 +414,9 @@ int main(int argc, char *argv[]){
 				char **mystringList = whichfont((unsigned int) wc, argv, k_optind, ops, fontfamily);
 				printf("\n");
 				if (!iswprint((wint_t)wc)) {
-					//printf("\"not a printable character\" ");
 					char* charString = wcharToString((unsigned int)wc);
-					printf("%s ", charString);
+					printf("\"%s\" ", charString);
                 			free(charString);
-					//printf("\"\\x%02X\" ", (unsigned int)wc);
 				}
 				else{
 					printf("\"%lc\" ", wc);
@@ -478,7 +476,7 @@ int main(int argc, char *argv[]){
 						*/
 						if (!iswprint((wint_t)wcList[i])) {
 							char* charString = wcharToString((unsigned int)wcList[i]);
-							printf("%s ", charString);
+							printf("\"%s\" ", charString);
 							free(charString);
 						}
 						else{
@@ -534,7 +532,7 @@ int main(int argc, char *argv[]){
 			*/
 			if (!iswprint((wint_t)wcList[i])) {
 				char* charString = wcharToString((unsigned int)wcList[i]);
-				printf("%s ", charString);
+				printf("\"%s\" ", charString);
 				free(charString);
 			}
 			else{
