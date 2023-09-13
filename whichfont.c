@@ -138,21 +138,86 @@ char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops, con
 }
 
 char* wcharToString(int charvalue){
-	//definin hash table
+
+        /* This is a **complete** list of all non-printable characters */
 	const char *charMapping[] = {
-		[0] = "\"\\0\"",
-		[7] = "\"\\a\"",
-		[8] = "\"\\b\"",
-		[9] = "\"\\t\"",
-		[10] = "\"\\n\"",
-		[11] = "\"\\v\"",
-		[12] = "\"\\f\"",
-		[13] = "\"\\r\"",
-		[27] = "\"\\e\"",
-		[92] = "\\\\"	
+                [0x0000] = "NULL",
+                [0x0001] = "START OF HEADING",
+                [0x0002] = "START OF TEXT",
+                [0x0003] = "END OF TEXT",
+                [0x0004] = "END OF TRANSMISSION",
+                [0x0005] = "ENQUIRY",
+                [0x0006] = "ACKNOWLEDGE",
+                [0x0007] = "BELL",
+                [0x0008] = "BACKSPACE",
+                [0x0009] = "CHARACTER TABULATION",
+                [0x000A] = "LINE FEED (LF)",
+                [0x000B] = "LINE TABULATION",
+                [0x000C] = "FORM FEED (FF)",
+                [0x000D] = "CARRIAGE RETURN (CR)",
+                [0x000E] = "SHIFT OUT",
+                [0x000F] = "SHIFT IN",
+                [0x0010] = "DATA LINK ESCAPE",
+                [0x0011] = "DEVICE CONTROL ONE",
+                [0x0012] = "DEVICE CONTROL TWO",
+                [0x0013] = "DEVICE CONTROL THREE",
+                [0x0014] = "DEVICE CONTROL FOUR",
+                [0x0015] = "NEGATIVE ACKNOWLEDGE",
+                [0x0016] = "SYNCHRONOUS IDLE",
+                [0x0017] = "END OF TRANSMISSION BLOCK",
+                [0x0018] = "CANCEL",
+                [0x0019] = "END OF MEDIUM",
+                [0x001A] = "SUBSTITUTE",
+                [0x001B] = "ESCAPE",
+                [0x001C] = "INFORMATION SEPARATOR FOUR",
+                [0x001D] = "INFORMATION SEPARATOR THREE",
+                [0x001E] = "INFORMATION SEPARATOR TWO",
+                [0x001F] = "INFORMATION SEPARATOR ONE",
+                [0x007F] = "DELETE",
+                [0x0080] = "U+0080 control character",
+                [0x0081] = "U+0081 control character",
+                [0x0082] = "BREAK PERMITTED HERE",
+                [0x0083] = "NO BREAK HERE",
+                [0x0084] = "U+0084 control character",
+                [0x0085] = "NEXT LINE (NEL)",
+                [0x0086] = "START OF SELECTED AREA",
+                [0x0087] = "END OF SELECTED AREA",
+                [0x0088] = "CHARACTER TABULATION SET",
+                [0x0089] = "CHARACTER TABULATION WITH JUSTIFICATION",
+                [0x008A] = "LINE TABULATION SET",
+                [0x008B] = "PARTIAL LINE FORWARD",
+                [0x008C] = "PARTIAL LINE BACKWARD",
+                [0x008D] = "REVERSE LINE FEED",
+                [0x008E] = "SINGLE SHIFT TWO",
+                [0x008F] = "SINGLE SHIFT THREE",
+                [0x0090] = "DEVICE CONTROL STRING",
+                [0x0091] = "PRIVATE USE ONE",
+                [0x0092] = "PRIVATE USE TWO",
+                [0x0093] = "SET TRANSMIT STATE",
+                [0x0094] = "CANCEL CHARACTER",
+                [0x0095] = "MESSAGE WAITING",
+                [0x0096] = "START OF GUARDED AREA",
+                [0x0097] = "END OF GUARDED AREA",
+                [0x0098] = "START OF STRING",
+                [0x0099] = "U+0099 control character",
+                [0x009A] = "SINGLE CHARACTER INTRODUCER",
+                [0x009B] = "CONTROL SEQUENCE INTRODUCER",
+                [0x009C] = "STRING TERMINATOR",
+                [0x009D] = "OPERATING SYSTEM COMMAND",
+                [0x009E] = "PRIVACY MESSAGE",
+                [0x009F] = "APPLICATION PROGRAM COMMAND",
+                [0x2028] = "LINE SEPARATOR",
+                [0x2029] = "PARAGRAPH SEPARATOR",
 	};
+        if(charvalue > 0x2029) {
+            /* Avoid segfault if accessing after the end of the
+             * array. wcharToString should never be called for indices
+             * outside of this array, but just in case, if called by
+             * accident for invalid indices, don’t segfault. */
+            return "This should never happen!";
+        }
 	if(charMapping[charvalue] != NULL){
-		return strdup(charMapping[charvalue]);
+                return strdup(charMapping[charvalue]);
 	}
 	else{
 		return strdup("non-printable character");
