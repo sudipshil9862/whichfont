@@ -237,7 +237,6 @@ int main(int argc, char *argv[]){
 	char **mystringList = NULL;
 	char **mystringListCopy = NULL;
 	char *fontfamily = NULL;
-	int hexprint = 0;
 	
 	int ops = OP_NONE;
 
@@ -245,7 +244,6 @@ int main(int argc, char *argv[]){
         {"all", no_argument, NULL, 'a'},
         {"sort", no_argument, NULL, 's'},
         {"font", no_argument, NULL, 'f'},
-        {"unicode", no_argument, NULL, 'u'},
         {"help", no_argument, NULL, 'h'},
         {NULL, 0, NULL, 0}
     	};
@@ -277,9 +275,6 @@ int main(int argc, char *argv[]){
 			}
 			ops = OP_FONTFAMILY;
                 	break;
-                case 'u':
-                	hexprint = 1;
-                	break;
 		case 'h':
 			if (ops==OP_ALL || ops==OP_SORT || ops==OP_FONTFAMILY){
 				printf("-h is not acceptable with -a or -s or -f\n");
@@ -302,7 +297,6 @@ int main(int argc, char *argv[]){
 		printf("  -a	--all		display all the available matches for the specified font attribute(s)\n");
 		printf("  -s	--sort		display sorted list of matches\n");
 		printf("  -f	--font		specify the fontname\n");
-		printf("  -u	--unicode	display unicodepoint\n");
 		printf("  -h	--help		display this help and exit\n");
 		printf("If you wanna give other parameters then follow this page:\n");
 		printf("https://www.freedesktop.org/software/fontconfig/fontconfig-devel/x19.html\n");
@@ -421,12 +415,7 @@ int main(int argc, char *argv[]){
 				else{
 					printf("\"%lc\" ", wc);
 				}
-				if(hexprint == 1){
-					printf("unicode: U+%04X\n",(unsigned int) wc);
-				}
-				else{
-					printf("\n");
-				}
+				printf("<U+%04X>\n",(unsigned int) wc);
 				int m = 0;
 				while (mystringList[m]!=NULL) {
 					printf("%s", mystringList[m]);
@@ -482,9 +471,7 @@ int main(int argc, char *argv[]){
 						else{
 							printf("\"%lc\" ", wcList[i]);
 						}
-						if(hexprint == 1){
-							printf("unicode: U+%04X",(unsigned int) wcList[i]);
-						}
+						printf("<U+%04X>",(unsigned int) wcList[i]);
     					}
 					printf("\n");
 					int m = 0;
@@ -521,15 +508,6 @@ int main(int argc, char *argv[]){
 		}
 		printf("\n");
 		for (int i = 0; i < wcCount; i++) {
-			/*
-			if (!iswprint((wint_t)wcList[i])) {
-				//printf("\"not a printable character\" ");
-				printf("\"\\x%02X\" ", (unsigned int)wc);
-			}
-			else{
-				printf("\"%lc\" ", wcList[i]);
-			}
-			*/
 			if (!iswprint((wint_t)wcList[i])) {
 				char* charString = wcharToString((unsigned int)wcList[i]);
 				printf("\"%s\" ", charString);
@@ -538,12 +516,7 @@ int main(int argc, char *argv[]){
 			else{
 				printf("\"%lc\" ", wcList[i]);
 			}
-			if(hexprint == 1){
-				printf("unicode: U+%04X\n",(unsigned int) wcList[i]);
-			}
-			else{
-				printf("\n");
-			}
+			printf("<U+%04X>\n",(unsigned int) wcList[i]);
 		}
 		int m = 0;
 		while (mystringListCopy[m]) {
