@@ -16,9 +16,37 @@ enum {
 		OP_ALL,
 		OP_SORT,
 		OP_FONTFAMILY,
+		OP_LANGUAGE,
 		OP_HELP,
 		OP_END
 };
+
+
+const char *valid_langs[] = {
+    "aa", "ab", "af", "agq", "agr", "ak", "am", "an", "anp", "ar", "as", "asa", "ast", "av", "ay", "ayc", "ayr", "az",
+    "ba", "bas", "be", "bem", "ber", "bez", "bg", "bhb", "bho", "bi", "bih", "bin", "bm", "bn", "bo", "br", "brx", "bs",
+    "bua", "byn", "ca", "ca_ES_VALENCIA", "ccp", "ce", "cgg", "ch", "chm", "chr", "ckb", "cmn", "co", "cop", "crh", "cs",
+    "csb", "cu", "cv", "cy", "da", "dav", "de", "dje", "doi", "dsb", "dua", "dv", "dyo", "dz", "ebu", "ee", "el", "en",
+    "eo", "es", "et", "eu", "ewo", "fa", "fat", "ff", "fi", "fil", "fj", "fo", "fr", "fur", "fy", "ga", "gbm", "gd", "gez",
+    "gl", "glk", "gn", "grc", "gsw", "gu", "guz", "gv", "ha", "hak", "haw", "he", "hi", "hif", "hil", "hne", "ho", "hr",
+    "hsb", "ht", "hu", "hy", "hz", "ia", "id", "ie", "ig", "ii", "ik", "ilo", "io", "is", "it", "iu", "iw", "ja", "jgo",
+    "jmc", "jv", "ka", "kaa", "kab", "kam", "kde", "kea", "kg", "khb", "khq", "ki", "kj", "kk", "kkj", "kl", "kln", "km",
+    "kn", "ko", "kok", "kr", "ks", "ks_Arab", "ks_Deva", "ksb", "ksf", "ksh", "ku", "kum", "kv", "kw", "kwm", "ky", "la",
+    "lag", "lah", "lb", "lez", "lg", "li", "lij", "lkt", "ln", "lo", "lrc", "lt", "lu", "luo", "luy", "lv", "lzh", "mag",
+    "mai", "mas", "mer", "mfe", "mg", "mgh", "mgo", "mh", "mhr", "mi", "miq", "mjw", "mk", "ml", "mn", "mni", "mnw", "mo",
+    "mos", "mr", "ms", "mt", "mua", "my", "mzn", "na", "nan", "naq", "nb", "nd", "nds", "ne", "new", "ng", "nhn", "niu",
+    "nl", "nmg", "nn", "nnh", "no", "nqo", "nr", "nso", "nus", "nv", "ny", "nyn", "oc", "om", "or", "os", "osa", "ota",
+    "pa", "pap", "pl", "prg", "ps", "pt", "qu", "quh", "quz", "raj", "rif", "rm", "rn", "ro", "rof", "ru", "rw", "rwk",
+    "sa", "sah", "saq", "sat", "sbp", "sc", "sco", "sd", "sd_Arab", "sd_Deva", "se", "seh", "sel", "ses", "sg", "sgs",
+    "sh", "shi", "shn", "shs", "si", "sid", "sk", "sl", "sm", "sma", "smj", "smn", "sms", "sn", "so", "sq", "sr", "sr_Cyrl",
+    "sr_Latn", "ss", "ssy", "st", "su", "sv", "sw", "syc", "syr", "szl", "ta", "tcy", "te", "teo", "tet", "tg", "th",
+    "the", "ti", "tig", "tk", "tl", "tn", "to", "tok", "tpi", "tr", "ts", "tt", "tt_Cyrl", "tt_Latn", "tw", "twq", "txg",
+    "ty", "tyv", "tzm", "udm", "ug", "uk", "unm", "ur", "uz", "vai", "ve", "vi", "vo", "vot", "vun", "wa", "wae", "wal",
+    "wen", "wo", "wuu", "xal", "xh", "xog", "xzh", "yap", "yav", "yi", "yo", "yue", "yuw", "za", "zgh", "zh", "zh_Hans",
+    "zh_Hans_CN", "zh_Hans_SG", "zh_Hant", "zh_Hant_HK", "zh_Hant_MO", "zh_Hant_TW", "zu",
+    NULL
+};
+
 
 char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops, const char* fontfamily){
 	FcPattern *pattern;
@@ -244,6 +272,7 @@ int main(int argc, char *argv[]){
         {"all", no_argument, NULL, 'a'},
         {"sort", no_argument, NULL, 's'},
         {"font", no_argument, NULL, 'f'},
+	{"language", required_argument, NULL, 'l'},
         {"help", no_argument, NULL, 'h'},
         {NULL, 0, NULL, 0}
     	};
@@ -251,7 +280,7 @@ int main(int argc, char *argv[]){
 	
 
 	int opt;
-	while((opt = getopt_long(argc,argv, "asfuh", longopts, NULL)) != -1){
+	while((opt = getopt_long(argc,argv, "asful:h", longopts, NULL)) != -1){
 		switch (opt)
 		{
 		case 'a':
@@ -275,6 +304,10 @@ int main(int argc, char *argv[]){
 			}
 			ops = OP_FONTFAMILY;
                 	break;
+		case 'l':
+			ops = OP_LANGUAGE;
+			fontfamily = strdup(optarg);
+			break;
 		case 'h':
 			if (ops==OP_ALL || ops==OP_SORT || ops==OP_FONTFAMILY){
 				printf("-h is not acceptable with -a or -s or -f\n");
@@ -297,6 +330,7 @@ int main(int argc, char *argv[]){
 		printf("  -a	--all		display all the available matches for the specified font attribute(s)\n");
 		printf("  -s	--sort		display sorted list of matches\n");
 		printf("  -f	--font		specify the fontname\n");
+		printf("  -l    --language	detect default font and validate font support for a given language\n");
 		printf("  -h	--help		display this help and exit\n");
 		printf("If you wanna give other parameters then follow this page:\n");
 		printf("https://www.freedesktop.org/software/fontconfig/fontconfig-devel/x19.html\n");
@@ -319,14 +353,58 @@ int main(int argc, char *argv[]){
 			return 1;
 		}
 	}
-	else{
-		if(argc == k_optind){
-			printf("input character or unicode is needed\n");
+	else if (ops == OP_LANGUAGE) {
+		if (fontfamily == NULL) {
+			printf("Please provide a language code with --language option\n");
 			return 1;
 		}
+		int is_valid_lang = 0;
+		for (int i = 0; valid_langs[i] != NULL; i++) {
+			if (strcmp(valid_langs[i], fontfamily) == 0) {
+				is_valid_lang = 1;
+				break;
+			}
+		}
+		if (!is_valid_lang) {
+			printf("Invalid language code used\n");
+			return 0;
+		}
+		FcPattern *pattern = FcPatternCreate();
+		FcPatternAddString(pattern, FC_LANG, (FcChar8 *)fontfamily);
+		FcConfigSubstitute(NULL, pattern, FcMatchPattern);
+		FcDefaultSubstitute(pattern);
+		
+		FcResult result;
+		FcPattern *match = FcFontMatch(NULL, pattern, &result);
+		if (!match) {
+			printf("No font installed for (%s) language\n", fontfamily);
+			FcPatternDestroy(pattern);
+			return 0;
+		}
+		FcLangSet *available_langs;
+		if (FcPatternGetLangSet(match, FC_LANG, 0, &available_langs) == FcResultMatch) {
+			FcLangSet *requested_lang = FcLangSetCreate();
+			FcLangSetAdd(requested_lang, (const FcChar8 *) fontfamily);
+			if (!FcLangSetContains(available_langs, requested_lang)) {
+				printf("No font installed for (%s) language\n", fontfamily);
+				FcLangSetDestroy(requested_lang);
+				FcPatternDestroy(match);
+				FcPatternDestroy(pattern);
+				return 0;
+			}
+			FcLangSetDestroy(requested_lang);
+		}
+		FcChar8 *family = NULL;
+		if (FcPatternGetString(match, FC_FAMILY, 0, &family) == FcResultMatch) {
+			printf("%s\n", family);
+		} else {
+			printf("Font found but family name could not be retrieved\n");
+		}
+		FcPatternDestroy(match);
+		FcPatternDestroy(pattern);
+		return 0;
 	}
-	
-	
+
 	if(ops == OP_FONTFAMILY){
 		fontfamily = (char *)malloc(strlen(argv[k_optind]) + 1); // +1 for the null terminator
 		if (fontfamily != NULL) {
