@@ -1,72 +1,113 @@
 # whichfont
+
 ## Querying Fontconfig
 
-Introducing a new project that simplifies the process of determining the font used to render a specific code point. Unlike the `fc-match :charset=... command`, which only works for `Unicode`, this tool can handle input in various formats, such as `UTF-8 characters`, `Unicode`. This versatility makes it a valuable tool for users who work with different character encodings.
+Introducing a new project that simplifies the process of determining the font used to render a specific code point. Unlike the `fc-match :charset=...` command, which only works for `Unicode`, this tool can handle input in various formats, such as `UTF-8 characters`, `Unicode`. This versatility makes it a valuable tool for users who work with different character encodings.
 
-### Note for Fedora users: please use `whichfont` instead of using `./.builddir/whichfont` or `./run.sh`. 
-### Only github users will use `./.builddir/whichfont` or `./run.sh`
+### Note for Fedora users: please use `whichfont` instead of using `./.builddir/whichfont` or `./run.sh`.  
+### Only GitHub users will use `./.builddir/whichfont` or `./run.sh`.
 
-## User Guidelines:
-1. To get started, To get started, you need to use Meson and Ninja to build the project. Meson is a build system that generates build files for Ninja, which is a build tool that builds the project. To build the project. simply run:
-    ```
-    ./build.sh
-    ```
-    or run manually using below commands:
-    ```
-    meson setup .builddir
-    ```
-    ```
-    ninja -C .builddir
-    ```
-    If this is your first time building the project, the first command will create a builddir directory where the build files will be stored. Subsequent builds can skip the meson builddir command.
+## Installation
 
-2. Once you have built the project, you can use the tool to input the code point you want to query. The output will show you the font/fonts used to render that code point. To use the tool, run:
-    ```
-    ./.builddir/whichfont <your_input>
-    ```
-3. The easy and best way is to run `run.sh` script like: `./run.sh`. This will build and run simultaneously like:
-    ```
-    ./run.sh <your_input>
-    ```
+To get started, you need to install dependencies and build the project.
 
-3. Input can be in any format, including UTF-8 characters, Unicode. Examples include:
-    `कें`, `u+0985`, `U+0985`, `u+0985`, `U+sudip`, `0x0985`, `0X0985`, `0xsudip`, `0985`, `অah😀`, `RED`, `A`, `😀`
- 
-4. Also you can use options like `-a` and `-s` like: ./.builddir/whichfont [option] <your_input> [option]
-    ```
-    ./run.sh -a कें
-    ``` 
-    or 
-    ```
-    ./run.sh -s অah😀
-    ```
-    `-a`: This option specifies that fc-match should return all fonts that match the given pattern, sorted in order of decreasing priority. This can be useful if you want to see all the possible fonts that could be used to render a given character.
+## Building
 
-    `-s`: This option specifies that fc-match should return all the best sorted list of fonts match for a given font pattern or font name.
+Use Meson and Ninja to build the project. Meson generates build files and Ninja builds the project.
 
-5. Another option can be [font name]:
-   FontName can be anything like 'serif', 'monospace', by default 'sans-serif' if no font-name is given.
-   ```
-   ./run.sh -f "FONTNAME" <your_input>
-   ```
-   example: 
-   ```   
-   ./run.sh -f "Noto Sans Bengali" 0985 
-   ```
-
- 
-6. For instant help use: `-h` or `--help`
-    ```
-     ./run.sh --help
-    ```
-
-## NOTE: 
-
-Additionally, there is a testcases.sh script file that includes all possible inputs and commands for the tool.
-run:
+### Automatic:
+```sh
+./build.sh
 ```
+
+### Manual:
+```sh
+meson setup .builddir
+ninja -C .builddir
+```
+
+The first command will create a `.builddir/` directory to store build files. On subsequent builds, you can skip the Meson setup step.
+
+## Usage
+
+Once built, you can use the tool as follows:
+```sh
+./.builddir/whichfont <your_input>
+```
+
+Or use the convenience script:
+```sh
+./run.sh <your_input>
+```
+
+### Input formats supported
+- UTF-8 characters
+- Unicode in forms like `U+0985`, `0x0985`, `0985`
+- Mixed input like `অah😀`, `RED`, `A`
+
+## Options
+
+### `-a`, `--all`
+Show all matching fonts in descending order of priority.
+```sh
+./run.sh -a कें
+```
+
+### `-s`, `--sort`
+Return the best sorted list of matching fonts.
+```sh
+./run.sh -s অah😀
+```
+
+### `-f`, `--font`
+Specify the font name (defaults to `sans-serif`).
+```sh
+./run.sh -f "Noto Sans Bengali" 0985
+```
+
+### `-l`, `--language`
+Check if a valid font is installed for the given language code.
+
+#### Examples:
+- Valid language code with font installed:
+  ```sh
+  ./run.sh --language ja
+  ```
+  Output: `Noto Sans CJK JP`
+
+- Valid language code but **no font installed**:
+  ```sh
+  ./run.sh --language ccp
+  ```
+  Output: `No font installed for (ccp) language`
+
+- Invalid language code:
+  ```sh
+  ./run.sh --language xyz
+  ```
+  Output: `Invalid language code used`
+
+This feature checks:
+- If the language code is valid (based on a known list)
+- If any font matches that language
+- If the font truly declares support via `FcLangSetContains()`
+
+### `-h`, `--help`
+Display usage instructions.
+
+```sh
+./run.sh --help
+```
+
+## Tests
+
+Run all test cases:
+```sh
 ./tests.sh
 ```
-all font results will be stored in `test_results.txt`. For the best viewing experience, you can open `test_results.txt` with a text editor like gedit.
 
-#### Whether you're a developer or a designer, this tool can help you save time and ensure consistency in your work. So give it a try and see how it can help you in your projects!
+Results are saved in `test_results.txt` for review.
+
+---
+
+Whether you're a developer or a designer, this tool can help you save time and ensure consistency in your work. So give it a try and see how it can help you in your projects!
