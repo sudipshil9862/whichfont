@@ -4,12 +4,25 @@
 
 Introducing a new project that simplifies the process of determining the font used to render a specific code point. Unlike the `fc-match :charset=...` command, which only works for `Unicode`, this tool can handle input in various formats, such as `UTF-8 characters`, `Unicode`. This versatility makes it a valuable tool for users who work with different character encodings.
 
-### Note for Fedora users: please use `whichfont` instead of using `./.builddir/whichfont` or `./run.sh`.  
-### Only GitHub users will use `./.builddir/whichfont` or `./run.sh`.
+### Note for Fedora users: `whichfont` is available in Fedora repositories! 🎉  
+You can install it directly using:
+```sh
+sudo dnf install whichfont
+```
+
+Then run it like this:
+```sh
+whichfont --language ja
+```
+
+### If you cloned from GitHub, use `./.builddir/whichfont` or `./run.sh`.
 
 ## Installation
 
-To get started, you need to install dependencies and build the project.
+To get started, install the dependencies (Meson, Ninja, Fontconfig headers). On Fedora:
+```sh
+sudo dnf install meson ninja-build fontconfig-devel
+```
 
 ## Building
 
@@ -94,7 +107,6 @@ This feature checks:
 
 ### `-h`, `--help`
 Display usage instructions.
-
 ```sh
 ./run.sh --help
 ```
