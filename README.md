@@ -105,6 +105,12 @@ This feature checks:
 - If any font matches that language
 - If the font truly declares support via `FcLangSetContains()`
 
+### `-L`, `--list-languages`
+Display all supported language codes from the internal database.
+```sh
+./run.sh --list-languages
+```
+
 ### `-h`, `--help`
 Display usage instructions.
 ```sh

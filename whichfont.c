@@ -17,34 +17,42 @@ enum {
 		OP_SORT,
 		OP_FONTFAMILY,
 		OP_LANGUAGE,
+		OP_LIST_LANGUAGES,
 		OP_HELP,
 		OP_END
 };
 
-
 const char *valid_langs[] = {
-    "aa", "ab", "af", "agq", "agr", "ak", "am", "an", "anp", "ar", "as", "asa", "ast", "av", "ay", "ayc", "ayr", "az",
-    "ba", "bas", "be", "bem", "ber", "bez", "bg", "bhb", "bho", "bi", "bih", "bin", "bm", "bn", "bo", "br", "brx", "bs",
-    "bua", "byn", "ca", "ca_ES_VALENCIA", "ccp", "ce", "cgg", "ch", "chm", "chr", "ckb", "cmn", "co", "cop", "crh", "cs",
-    "csb", "cu", "cv", "cy", "da", "dav", "de", "dje", "doi", "dsb", "dua", "dv", "dyo", "dz", "ebu", "ee", "el", "en",
-    "eo", "es", "et", "eu", "ewo", "fa", "fat", "ff", "fi", "fil", "fj", "fo", "fr", "fur", "fy", "ga", "gbm", "gd", "gez",
-    "gl", "glk", "gn", "grc", "gsw", "gu", "guz", "gv", "ha", "hak", "haw", "he", "hi", "hif", "hil", "hne", "ho", "hr",
-    "hsb", "ht", "hu", "hy", "hz", "ia", "id", "ie", "ig", "ii", "ik", "ilo", "io", "is", "it", "iu", "iw", "ja", "jgo",
-    "jmc", "jv", "ka", "kaa", "kab", "kam", "kde", "kea", "kg", "khb", "khq", "ki", "kj", "kk", "kkj", "kl", "kln", "km",
-    "kn", "ko", "kok", "kr", "ks", "ks_Arab", "ks_Deva", "ksb", "ksf", "ksh", "ku", "kum", "kv", "kw", "kwm", "ky", "la",
-    "lag", "lah", "lb", "lez", "lg", "li", "lij", "lkt", "ln", "lo", "lrc", "lt", "lu", "luo", "luy", "lv", "lzh", "mag",
-    "mai", "mas", "mer", "mfe", "mg", "mgh", "mgo", "mh", "mhr", "mi", "miq", "mjw", "mk", "ml", "mn", "mni", "mnw", "mo",
-    "mos", "mr", "ms", "mt", "mua", "my", "mzn", "na", "nan", "naq", "nb", "nd", "nds", "ne", "new", "ng", "nhn", "niu",
-    "nl", "nmg", "nn", "nnh", "no", "nqo", "nr", "nso", "nus", "nv", "ny", "nyn", "oc", "om", "or", "os", "osa", "ota",
-    "pa", "pap", "pl", "prg", "ps", "pt", "qu", "quh", "quz", "raj", "rif", "rm", "rn", "ro", "rof", "ru", "rw", "rwk",
-    "sa", "sah", "saq", "sat", "sbp", "sc", "sco", "sd", "sd_Arab", "sd_Deva", "se", "seh", "sel", "ses", "sg", "sgs",
-    "sh", "shi", "shn", "shs", "si", "sid", "sk", "sl", "sm", "sma", "smj", "smn", "sms", "sn", "so", "sq", "sr", "sr_Cyrl",
-    "sr_Latn", "ss", "ssy", "st", "su", "sv", "sw", "syc", "syr", "szl", "ta", "tcy", "te", "teo", "tet", "tg", "th",
-    "the", "ti", "tig", "tk", "tl", "tn", "to", "tok", "tpi", "tr", "ts", "tt", "tt_Cyrl", "tt_Latn", "tw", "twq", "txg",
-    "ty", "tyv", "tzm", "udm", "ug", "uk", "unm", "ur", "uz", "vai", "ve", "vi", "vo", "vot", "vun", "wa", "wae", "wal",
-    "wen", "wo", "wuu", "xal", "xh", "xog", "xzh", "yap", "yav", "yi", "yo", "yue", "yuw", "za", "zgh", "zh", "zh_Hans",
-    "zh_Hans_CN", "zh_Hans_SG", "zh_Hant", "zh_Hant_HK", "zh_Hant_MO", "zh_Hant_TW", "zu",
-    NULL
+	"aa", "ab", "af", "agr", "ak", "am", "an", "anp", "ar", "as",
+	"ast", "av", "ay", "ayc", "az_az", "az_ir", "ba", "be", "bem", "ber_dz",
+	"ber_ma", "bg", "bh", "bhb", "bho", "bi", "bin", "bm", "bn", "bo",
+	"br", "brx", "bs", "bua", "byn", "ca", "ce", "ch", "chm", "chr",
+	"ckb", "cmn", "co", "cop", "crh", "cs", "csb", "cu", "cv", "cy",
+	"da", "de", "doi", "dsb", "dv", "dz", "ee", "el", "en", "eo",
+	"es", "et", "eu", "fa", "fat", "ff", "fi", "fil", "fj", "fo",
+	"fr", "fur", "fy", "ga", "gd", "gez", "gl", "gn", "got", "gu",
+	"gv", "ha", "hak", "haw", "he", "hi", "hif", "hne", "ho", "hr",
+	"hsb", "ht", "hu", "hy", "hz", "ia", "id", "ie", "ig", "ii",
+	"ik", "io", "is", "it", "iu", "ja", "jv", "ka", "kaa", "kab",
+	"ki", "kj", "kk", "kl", "km", "kn", "ko", "kok", "kr", "ks",
+	"ku_am", "ku_iq", "ku_ir", "ku_tr", "kum", "kv", "kw", "kwm", "ky", "la",
+	"lah", "lb", "lez", "lg", "li", "lij", "ln", "lo", "lt", "lv",
+	"lzh", "mag", "mai", "mfe", "mg", "mh", "mhr", "mi", "miq", "mjw",
+	"mk", "ml", "mn_cn", "mn_mn", "mni", "mnw", "mo", "mr", "ms", "mt",
+	"my", "na", "nan", "nb", "nds", "ne", "ng", "nhn", "niu", "nl",
+	"nn", "no", "nqo", "nr", "nso", "nv", "ny", "oc", "om", "or",
+	"os", "ota", "pa", "pa_pk", "pap_an", "pap_aw", "pes", "pl", "prs", "ps_af",
+	"ps_pk", "pt", "qu", "quz", "raj", "rif", "rm", "rn", "ro", "ru",
+	"rw", "sa", "sah", "sat", "sc", "sco", "sd", "se", "sel", "sg",
+	"sgs", "sh", "shn", "shs", "si", "sid", "sk", "sl", "sm", "sma",
+	"smj", "smn", "sms", "sn", "so", "sq", "sr", "ss", "st", "su",
+	"sv", "sw", "syr", "szl", "ta", "tcy", "te", "tg", "th", "the",
+	"ti_er", "ti_et", "tig", "tk", "tl", "tn", "to", "tpi", "tr", "ts",
+	"tt", "tw", "ty", "tyv", "ug", "uk", "und_zmth", "und_zsye", "unm", "ur",
+	"uz", "ve", "vi", "vo", "vot", "wa", "wae", "wal", "wen", "wo",
+	"xh", "yap", "yi", "yo", "yue", "yuw", "za", "zh_cn", "zh_hk", "zh_mo",
+	"zh_sg", "zh_tw", "zu",
+	NULL
 };
 
 
@@ -273,6 +281,7 @@ int main(int argc, char *argv[]){
         {"sort", no_argument, NULL, 's'},
         {"font", no_argument, NULL, 'f'},
 	{"language", required_argument, NULL, 'l'},
+	{"list-languages", no_argument, NULL, 'L'},
         {"help", no_argument, NULL, 'h'},
         {NULL, 0, NULL, 0}
     	};
@@ -280,46 +289,58 @@ int main(int argc, char *argv[]){
 	
 
 	int opt;
-	while((opt = getopt_long(argc,argv, "asful:h", longopts, NULL)) != -1){
-		switch (opt)
-		{
+	opterr = 0;
+	while ((opt = getopt_long(argc, argv, "asful:hL", longopts, NULL)) != -1) {
+	    switch (opt) {
 		case 'a':
-			if (ops==OP_SORT || ops==OP_FONTFAMILY || ops==OP_HELP){
-				printf("-a is not acceptable with -s or -f or -h\n");
-				return 1;
-			}
-			ops = OP_ALL;
-			break;
-		case 's':
-			if (ops==OP_ALL || ops==OP_FONTFAMILY || ops==OP_HELP){
-				printf("-s is not acceptable with -a or -f or -h\n");
-				return 1;
-			}
-			ops = OP_SORT;
-			break;
-		case 'f':
-			if (ops==OP_ALL || ops==OP_SORT || ops==OP_HELP){
-				printf("-f is not acceptable with -a or -s or -h\n");
-				return 1;
-			}
-			ops = OP_FONTFAMILY;
-                	break;
-		case 'l':
-			ops = OP_LANGUAGE;
-			fontfamily = strdup(optarg);
-			break;
-		case 'h':
-			if (ops==OP_ALL || ops==OP_SORT || ops==OP_FONTFAMILY){
-				printf("-h is not acceptable with -a or -s or -f\n");
-				return 1;
-			}
-			ops = OP_HELP;
-			break;
-		default:
-			printf("invalid option argument is there\n");
+		    if (ops != OP_NONE) {
+			printf("-a is not acceptable with other options (-s, -f, -l, -L, -h)\n");
 			return 1;
-		}
+		    }
+		    ops = OP_ALL;
+		    break;
+		case 's':
+		    if (ops != OP_NONE) {
+			printf("-s is not acceptable with other options (-a, -f, -l, -L, -h)\n");
+			return 1;
+		    }
+		    ops = OP_SORT;
+		    break;
+		case 'f':
+		    if (ops != OP_NONE) {
+			printf("-f is not acceptable with other options (-a, -s, -l, -L, -h)\n");
+			return 1;
+		    }
+		    ops = OP_FONTFAMILY;
+		    break;
+		case 'l':
+		    if (ops != OP_NONE) {
+			printf("-l is not acceptable with other options (-a, -s, -f, -L, -h)\n");
+			return 1;
+		    }
+		    ops = OP_LANGUAGE;
+		    fontfamily = strdup(optarg);
+		    break;
+		case 'L':
+		    if (ops != OP_NONE) {
+			printf("-L is not acceptable with other options (-a, -s, -f, -l, -h)\n");
+			return 1;
+		    }
+		    ops = OP_LIST_LANGUAGES;
+		    break;
+		case 'h':
+		    if (ops != OP_NONE) {
+			printf("-h is not acceptable with other options (-a, -s, -f, -l, -L)\n");
+			return 1;
+		    }
+		    ops = OP_HELP;
+		    break;
+		case '?':
+		    printf("invalid option argument is there\n");
+		    return 1;
+	    }
 	}
+
 	
 	if (ops == OP_HELP) {
 		printf("Usage: whichfont [OPTION] <INPUT> [OTHER PARAMETERS]\n");
@@ -331,12 +352,23 @@ int main(int argc, char *argv[]){
 		printf("  -s	--sort		display sorted list of matches\n");
 		printf("  -f	--font		specify the fontname\n");
 		printf("  -l    --language	detect default font and validate font support for a given language\n");
+		printf("  -L    --list-languages   display all supported language codes\n");
 		printf("  -h	--help		display this help and exit\n");
 		printf("If you wanna give other parameters then follow this page:\n");
 		printf("https://www.freedesktop.org/software/fontconfig/fontconfig-devel/x19.html\n");
 		printf("Learn more about whichfont: https://github.com/sudipshil9862/whichfont/blob/main/README.md\n");
 		return 0;
 	}
+
+	if (ops == OP_LIST_LANGUAGES) {
+		printf("Supported language codes: \n");
+		for (int i = 0; valid_langs[i] != NULL; i++) {
+			printf("%s%s", valid_langs[i], ((i + 1) % 10 == 0) ? "\n" : " ");
+		}
+		printf("\n");
+		return 0;
+	}
+
 	
 	
 	
@@ -367,6 +399,7 @@ int main(int argc, char *argv[]){
 		}
 		if (!is_valid_lang) {
 			printf("Invalid language code used\n");
+			printf("Use --list-languages to see the supported list\n");
 			return 0;
 		}
 		FcPattern *pattern = FcPatternCreate();
@@ -404,7 +437,7 @@ int main(int argc, char *argv[]){
 		FcPatternDestroy(pattern);
 		return 0;
 	}
-
+	
 	if(ops == OP_FONTFAMILY){
 		fontfamily = (char *)malloc(strlen(argv[k_optind]) + 1); // +1 for the null terminator
 		if (fontfamily != NULL) {
@@ -422,7 +455,7 @@ int main(int argc, char *argv[]){
 	else{
 		input_char = argv[k_optind];
 	}
-	
+
 	//printf("input_char: %s\n", input_char);
 
 	int len_inputchar = strlen(input_char);
