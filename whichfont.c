@@ -56,7 +56,7 @@ const char *valid_langs[] = {
 };
 
 
-char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops, const char* fontfamily){
+char** whichfont(long int unicodepoint, char* argv[], int p_index, int ops, const char* fontfamily){
 	FcPattern *pattern;
 	FcCharSet *charset;
 	FcObjectSet	*os = 0;
@@ -74,13 +74,16 @@ char** whichfont(long int unicodepoint, char* argv[], int k_optind, int ops, con
 	FcCharSetAddChar(charset, (FcChar32) unicodepoint);
 	FcPatternAddCharSet(pattern, FC_CHARSET, charset);
 
-	while (argv[++k_optind])
-	{
-		if (!os)
+	//printf("p_index=%d\n", p_index);
+	if(p_index != -1) {
+		while (argv[++p_index])
 		{
-			os = FcObjectSetCreate ();
+			if (!os)
+			{
+				os = FcObjectSetCreate ();
+			}
+			FcObjectSetAdd (os, argv[p_index]);
 		}
-		FcObjectSetAdd (os, argv[k_optind]);
 	}
 	
 	if (ops == OP_FONTFAMILY && fontfamily) {
@@ -269,7 +272,14 @@ int main(int argc, char *argv[]){
 	}
 	
 	setlocale(LC_ALL, "");
-	char *input_char = NULL;
+	char *input_char;
+	input_char = malloc(1024);  // or dynamically calculate the needed size
+	if (!input_char) {
+	    fprintf(stderr, "Memory allocation failed for input_char\n");
+	    exit(EXIT_FAILURE);
+	}
+	input_char[0] = '\0';  // Initialize as empty string before strcat
+			       //
 	char **mystringList = NULL;
 	char **mystringListCopy = NULL;
 	char *fontfamily = NULL;
@@ -290,7 +300,17 @@ int main(int argc, char *argv[]){
 
 	int opt;
 	opterr = 0;
-	while ((opt = getopt_long(argc, argv, "asful:hL", longopts, NULL)) != -1) {
+	int p_index = -1;
+	int param_mode = 0;
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "::") == 0 || strcmp(argv[i], "--") == 0) {
+			param_mode = 1;
+			p_index = i;
+			break;
+		}
+	}
+	int opt_argc = (p_index == -1) ? argc : p_index;
+	while ((opt = getopt_long(opt_argc, argv, "asful:hL", longopts, NULL)) != -1) {
 	    switch (opt) {
 		case 'a':
 		    if (ops != OP_NONE) {
@@ -343,8 +363,11 @@ int main(int argc, char *argv[]){
 
 	
 	if (ops == OP_HELP) {
-		printf("Usage: whichfont [OPTION] <INPUT> [OTHER PARAMETERS]\n");
-		printf("fontname feature usage: whichfont -f 'FONTNAME' <INPUT> [OTHER PARAMETERS]\n");
+		printf("Usage: whichfont [OPTION] <INPUT> [:: PARAMS]\n");
+		printf("       whichfont -f 'Noto Sans' abc def :: family style weight\n");
+		printf("       whichfont abc def :: family familylang\n");
+		printf("       whichfont -a abc def :: family familylang\n");
+		printf("       whichfont --language ja\n");
 		printf("<Input>:\n");
 		printf("  1. UTF-8 character or Unicode\n");
 		printf("[Options]:\n");
@@ -354,9 +377,9 @@ int main(int argc, char *argv[]){
 		printf("  -l    --language	detect default font and validate font support for a given language\n");
 		printf("  -L    --list-languages   display all supported language codes\n");
 		printf("  -h	--help		display this help and exit\n");
-		printf("If you wanna give other parameters then follow this page:\n");
+		printf("<PARAMS>:\nIf you wanna give other parameters then follow this page:\n");
 		printf("https://www.freedesktop.org/software/fontconfig/fontconfig-devel/x19.html\n");
-		printf("Learn more about whichfont: https://github.com/sudipshil9862/whichfont/blob/main/README.md\n");
+		printf("\nLearn more about whichfont: https://github.com/sudipshil9862/whichfont/blob/main/README.md\n");
 		return 0;
 	}
 
@@ -374,6 +397,19 @@ int main(int argc, char *argv[]){
 	
 	int k_optind;
 	k_optind = optind;
+
+	if(strcmp(argv[k_optind], "::")==0){
+		printf("no input characters to render\n");
+		return -1;
+	}
+
+	if(param_mode){
+		//printf("k_optind=%d, argc=%d, p_index=%d, value of p_index=%s\n", k_optind, argc, p_index, argv[p_index]);
+		if(argv[p_index + 1] == NULL){
+			printf("no fontconfig parameters entered after using :: separator\n");
+			return 1;	
+		}
+	}
 	
 	if(ops == OP_FONTFAMILY){
 		if(argc == k_optind){
@@ -450,13 +486,45 @@ int main(int argc, char *argv[]){
 		k_optind++;
 		//printf("k_optind: %d, characters: %s\n", k_optind, argv[k_optind]);
 		//printf("argc: %d, k_optind: %d\n", argc, k_optind);
-		input_char = argv[k_optind];
+		//input_char = argv[k_optind];
+		if(param_mode){
+			for (int i = k_optind; i < p_index; i++) {
+				strcat(input_char, argv[i]);
+				if (i != p_index - 1){
+					strcat(input_char, " ");
+				}
+			}
+		}
+		else {
+			for(int i = k_optind; i < argc; i++){
+				strcat(input_char, argv[i]);
+				if(i != argc - 1){
+					strcat(input_char, " ");
+				}
+			}
+                }
 	}
 	else{
-		input_char = argv[k_optind];
+		//input_char = argv[k_optind];
+		if(param_mode){
+                        for (int i = k_optind; i < p_index; i++) {
+                                strcat(input_char, argv[i]);
+                                if (i != p_index - 1){
+                                        strcat(input_char, " ");
+                                }
+                        }
+                }
+		else {
+			for(int i = k_optind; i < argc; i++){
+				strcat(input_char, argv[i]);
+				if(i != argc - 1){
+					strcat(input_char, " ");
+				}
+			}
+		}
 	}
 
-	//printf("input_char: %s\n", input_char);
+	printf("input_char: %s\n", input_char);
 
 	int len_inputchar = strlen(input_char);
 
@@ -516,7 +584,7 @@ int main(int argc, char *argv[]){
 					fprintf(stderr, "Error: unexpected end of string\n");
 					return 1;
 				}
-				char **mystringList = whichfont((unsigned int) wc, argv, k_optind, ops, fontfamily);
+				char **mystringList = whichfont((unsigned int) wc, argv, p_index, ops, fontfamily);
 				printf("\n");
 				if (!iswprint((wint_t)wc)) {
 					char* charString = wcharToString((unsigned int)wc);
@@ -551,7 +619,7 @@ int main(int argc, char *argv[]){
 				fprintf(stderr, "Error: unexpected end of string\n");
 				return 1;
 			}
-			mystringList = whichfont((unsigned int) wc, argv, k_optind, ops, fontfamily);
+			mystringList = whichfont((unsigned int) wc, argv, p_index, ops, fontfamily);
 			
 			if (mystringListCopy)
 			{
@@ -647,7 +715,7 @@ int main(int argc, char *argv[]){
 		printf("invalid unicodepoint\n");
 		return 1;
 	}
-	mystringList = whichfont(unicodepoint, argv, k_optind, ops, fontfamily);
+	mystringList = whichfont(unicodepoint, argv, p_index, ops, fontfamily);
 	int n = 0;
 	while (mystringList[n]) {
 		printf("%s", mystringList[n]);

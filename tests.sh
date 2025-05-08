@@ -44,6 +44,14 @@ test_cases=(
     "--help"
 
     "-f 'Noto Sans Bengali' 0985"
+
+    "abc def"
+    "-f 'Noto Sans' abc def"
+
+    "abc :: family style familylang"
+    "abc :: family"
+    "abc def :: family familylang"
+    "-f 'Noto Sans Bengali' abc def :: fanily familylang"
 )
 
 output_file="test_results.txt"

@@ -45,18 +45,25 @@ The first command will create a `.builddir/` directory to store build files. On 
 
 Once built, you can use the tool as follows:
 ```sh
-./.builddir/whichfont <your_input>
+./.builddir/whichfont <INPUT> [:: PARAMS]
 ```
 
 Or use the convenience script:
 ```sh
-./run.sh <your_input>
+./run.sh <your_input> [:: PARAMS]
 ```
 
 ### Input formats supported
 - UTF-8 characters
 - Unicode in forms like `U+0985`, `0x0985`, `0985`
-- Mixed input like `অah😀`, `RED`, `A`
+- Mixed input like `অah😀`, `RED`, `A`, `abc def`
+
+### Examples:
+`./run.sh abc`
+`./run.sh -f "Noto Sans" abc def`
+`./run.sh -f "Noto Sans" abc def :: family style weight`
+`./run.sh abc def :: family familylang`
+`./run.sh --language ja`
 
 ## Options
 
@@ -111,6 +118,16 @@ Display all supported language codes from the internal database.
 ./run.sh --list-languages
 ```
 
+### ::PARAMS
+Parameters provided after :: are treated as Fontconfig attributes.
+You can specify attributes like family, style, weight, lang, etc.
+If you wanna give other parameters then follow this page:
+https://www.freedesktop.org/software/fontconfig/fontconfig-devel/x19.html
+
+#### Examples:
+`./run.sh -f "Noto Sans" abc def :: family style weight`
+`./run.sh abc def :: family weight lang`
+
 ### `-h`, `--help`
 Display usage instructions.
 ```sh
@@ -128,4 +145,4 @@ Results are saved in `test_results.txt` for review.
 
 ---
 
-Whether you're a developer or a designer, this tool can help you save time and ensure consistency in your work. So give it a try and see how it can help you in your projects!
+Whether you're a developer or a designer, this tool can help you save time and ensure consistency in your work. Give it a try and see how it can simplify your font management tasks!
