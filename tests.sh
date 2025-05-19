@@ -37,7 +37,7 @@ test_cases=(
     "-a -l"
 
     "--language ja"
-    "--language xyz" #this should give error in test_error.txt - part of testing
+    "--language xyz"
 
     "--list-languages"
     "--help"
@@ -51,6 +51,17 @@ test_cases=(
     "abc :: family"
     "abc def :: family familylang"
     "-f 'Noto Sans Bengali' abc def :: fanily familylang"
+
+    "0x123456789"
+    "U+123456789"
+    "U+"
+    "0x"
+    "অ😀"
+    "0x0985ABC"
+    "abc def family"
+    "-f 'Noto Emoji' 😀"
+    "abc :: family style weight"
+    "\"\" \"\" \"\""
 )
 
 output_file="test_results.txt"

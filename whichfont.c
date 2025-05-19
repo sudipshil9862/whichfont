@@ -338,6 +338,10 @@ int main(int argc, char *argv[]){
 			printf("-l is not acceptable with other options (-a, -s, -f, -L, -h)\n");
 			return 1;
 		    }
+		    if (optarg == NULL) {
+			printf("missing argument for -l\n");
+			return 1;
+		    }
 		    ops = OP_LANGUAGE;
 		    fontfamily = strdup(optarg);
 		    break;
@@ -356,11 +360,15 @@ int main(int argc, char *argv[]){
 		    ops = OP_HELP;
 		    break;
 		case '?':
-		    printf("invalid option argument is there\n");
+		    if (optopt == 'l') {
+			printf("missing argument for -l\n");
+		    }
+		    else {
+		    	printf("invalid option argument is there\n");
+		    }
 		    return 1;
 	    }
 	}
-
 	
 	if (ops == OP_HELP) {
 		printf("Usage: whichfont [OPTION] <INPUT> [:: PARAMS]\n");
@@ -394,35 +402,10 @@ int main(int argc, char *argv[]){
 
 	
 	
-	
 	int k_optind;
 	k_optind = optind;
-
-	if(strcmp(argv[k_optind], "::")==0){
-		printf("no input characters to render\n");
-		return -1;
-	}
-
-	if(param_mode){
-		//printf("k_optind=%d, argc=%d, p_index=%d, value of p_index=%s\n", k_optind, argc, p_index, argv[p_index]);
-		if(argv[p_index + 1] == NULL){
-			printf("no fontconfig parameters entered after using :: separator\n");
-			return 1;	
-		}
-	}
-	
-	if(ops == OP_FONTFAMILY){
-		if(argc == k_optind){
-			printf("input character or unicode is needed\n");
-			return 1;
-		}
-		if(argc == k_optind+1){
-			printf("please specify both fontname and unicode\n");
-			return 1;
-		}
-	}
-	else if (ops == OP_LANGUAGE) {
-		if (fontfamily == NULL) {
+	if (ops == OP_LANGUAGE) {
+	    if (fontfamily == NULL) {
 			printf("Please provide a language code with --language option\n");
 			return 1;
 		}
@@ -472,6 +455,28 @@ int main(int argc, char *argv[]){
 		FcPatternDestroy(match);
 		FcPatternDestroy(pattern);
 		return 0;
+	}
+	if(k_optind < argc && argv[k_optind] != NULL && strcmp(argv[k_optind], "::") == 0){
+		printf("no input characters to render\n");
+		return -1;
+	}
+	if(param_mode){
+		//printf("k_optind=%d, argc=%d, p_index=%d, value of p_index=%s\n", k_optind, argc, p_index, argv[p_index]);
+		if(argv[p_index + 1] == NULL){
+			printf("no fontconfig parameters entered after using :: separator\n");
+			return 1;	
+		}
+	}
+	
+	if(ops == OP_FONTFAMILY){
+		if(argc == k_optind){
+			printf("input character or unicode is needed\n");
+			return 1;
+		}
+		if(argc == k_optind+1){
+			printf("please specify both fontname and unicode\n");
+			return 1;
+		}
 	}
 	
 	if(ops == OP_FONTFAMILY){
