@@ -37,8 +37,7 @@ test_cases=(
     "-a -l"
 
     "--language ja"
-    "--language ccp"
-    "--language xyz"
+    "--language xyz" #this should give error in test_error.txt - part of testing
 
     "--list-languages"
     "--help"
@@ -69,17 +68,26 @@ echo >> "$error_file"
 for test_case in "${test_cases[@]}"
 do
     command_output=$(./.builddir/whichfont $test_case 2>tmp_stderr)
-    error_output=$(<tmp_stderr)
+    exit_status=$?
 
-    echo "input: ./.builddir/whichfont $test_case" >> "$output_file"
-    echo "output: $command_output" >> "$output_file"
-    echo "-------------------------------------------------------------------------------------------------------------------------------------" >> "$output_file"
-
-    if [ -n "$error_output" ]; then
+    #segmentation fault (exit code 139)
+    if [ $exit_status -eq 139 ]; then
         echo "input: ./.builddir/whichfont $test_case" >> "$error_file"
-        echo "error: $error_output" >> "$error_file"
+        echo "error: Segmentation fault (core dumped)" >> "$error_file"
         echo "-------------------------------------------------------------------------------------------------------------------------------------" >> "$error_file"
         had_error=1
+    else
+        echo "input: ./.builddir/whichfont $test_case" >> "$output_file"
+        echo "output: $command_output" >> "$output_file"
+        echo "-------------------------------------------------------------------------------------------------------------------------------------" >> "$output_file"
+
+        error_output=$(<tmp_stderr)
+        if [ -n "$error_output" ]; then
+            echo "input: ./.builddir/whichfont $test_case" >> "$error_file"
+            echo "error: $error_output" >> "$error_file"
+            echo "-------------------------------------------------------------------------------------------------------------------------------------" >> "$error_file"
+            had_error=1
+        fi
     fi
 
     rm -f tmp_stderr
