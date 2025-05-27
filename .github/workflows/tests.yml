@@ -1,0 +1,40 @@
+name: run whichfont tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install build dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y meson ninja-build gcc fontconfig libfontconfig1-dev
+
+      - name: make script executable
+        run: chmod +x build.sh run.sh tests.sh
+
+      - name: run tests
+        run: ./tests.sh
+
+      - name: check test result files
+        run: |
+          if [ ! -f test_results.txt ] || [ ! -f test_error_results.txt ]; then
+            echo "Test result files are missing!"
+            exit 1
+          fi
+      - name: upload test result artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: |
+            test_results.txt
+            test_error_results.txt
