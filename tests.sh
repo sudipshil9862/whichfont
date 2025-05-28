@@ -107,4 +107,5 @@ done
 echo "All test cases completed. Results saved to $output_file"
 if [ $had_error -eq 1 ]; then
     echo "⚠️  Some test cases produced errors. Please check $error_file for details."
+    exit 1
 fi
