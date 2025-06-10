@@ -1,0 +1,27 @@
+name: Create Clean Tarball for Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  tarball:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create clean tarball
+        run: |
+          TAG_NAME="${GITHUB_REF##*/}"
+          echo "Creating tarball for tag: $TAG_NAME"
+          git archive --format=tar.gz --prefix=whichfont-${TAG_NAME}/ -o whichfont-${TAG_NAME}.tar.gz $TAG_NAME
+
+      - name: Upload tarball as release asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: whichfont-*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
