@@ -14,10 +14,18 @@ test_cases=(
     "0xsudip"
     "0985"
     "😀"
-    "অah😀"
-    "অঀ"
-    "অ😀"
+        "অah😀"
+        "অঀ"
+        "অ😀"
     "A"
+    
+    "☎"
+    "☎️"
+    "❤️"
+    "‼️"
+    
+    "Hello ☎️ World 🚀"
+    
     "😀$(echo -e "\e")ab"
     "$(echo -e "\xe2\x80\xa8")"
     "'　'"
@@ -27,6 +35,9 @@ test_cases=(
     "-s 😀"
     "-s অah😀"
     "-s A"
+    
+    "-s ☎️"
+    "-a ♻️"
 
     "-a -s"
     "-a -f"
@@ -88,8 +99,9 @@ do
         echo "-------------------------------------------------------------------------------------------------------------------------------------" >> "$error_file"
         had_error=1
     else
-        echo "input: ./.builddir/whichfont $test_case" >> "$output_file"
-        echo "output: $command_output" >> "$output_file"
+        #echo "input: ./.builddir/whichfont $test_case" >> "$output_file"
+        #output:--
+	echo "$command_output" >> "$output_file"
         echo "-------------------------------------------------------------------------------------------------------------------------------------" >> "$output_file"
 
         error_output=$(<tmp_stderr)

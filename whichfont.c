@@ -56,10 +56,10 @@ const char *valid_langs[] = {
 };
 
 
-char** whichfont(long int unicodepoint, char* argv[], int p_index, int ops, const char* fontfamily){
+char** whichfont(long int unicodepoint, long int vs_codepoint, char* argv[], int p_index, int ops, const char* fontfamily){
 	FcPattern *pattern;
 	FcCharSet *charset;
-	FcObjectSet	*os = 0;
+	FcObjectSet *os = 0;
 	const FcChar8 *format = NULL;
 	
 	
@@ -72,6 +72,9 @@ char** whichfont(long int unicodepoint, char* argv[], int p_index, int ops, cons
 	charset = FcCharSetCreate();
 	
 	FcCharSetAddChar(charset, (FcChar32) unicodepoint);
+	if (vs_codepoint != 0){
+		FcCharSetAddChar(charset, (FcChar32) vs_codepoint);
+	}
 	FcPatternAddCharSet(pattern, FC_CHARSET, charset);
 
 	//printf("p_index=%d\n", p_index);
@@ -93,6 +96,10 @@ char** whichfont(long int unicodepoint, char* argv[], int p_index, int ops, cons
     		FcPatternAddString(pattern, FC_FAMILY, (FcChar8*)"sans-serif");
     	}
 
+	if (vs_codepoint == 0xFE0F || unicodepoint >= 0x1F000) {
+		FcPatternAddBool(pattern, FC_COLOR, FcTrue);	
+	}
+
 	FcConfigSubstitute (0, pattern, FcMatchPattern);
     	FcDefaultSubstitute (pattern);
 
@@ -111,8 +118,20 @@ char** whichfont(long int unicodepoint, char* argv[], int p_index, int ops, cons
 		int j;
 		for (j = 0; j < font_set->nfont; j++)
 		{
-			FcPattern  *font_pattern;
+			//filter out fonts that don't actually support the requested char.
+			//FcFontSort returns a prioritized fontlist that contain the glyph including fallbacks.
+			FcCharSet *font_cs;
+			if (FcPatternGetCharSet(font_set->fonts[j], FC_CHARSET, 0, &font_cs) == FcResultMatch) {
+				if (!FcCharSetHasChar(font_cs, (FcChar32)unicodepoint)) {
+					continue;
+				}
+				if (vs_codepoint == 0xFE0F) {
+					FcPatternAddBool(pattern, FC_COLOR, FcTrue);	
+				}
 
+			}
+			
+			FcPattern  *font_pattern;
 			font_pattern = FcFontRenderPrepare (NULL, pattern, font_set->fonts[j]);
 			if (font_pattern)
 				FcFontSetAdd (fs, font_pattern);
@@ -287,13 +306,13 @@ int main(int argc, char *argv[]){
 	int ops = OP_NONE;
 
 	struct option longopts[] = {
-        {"all", no_argument, NULL, 'a'},
-        {"sort", no_argument, NULL, 's'},
-        {"font", no_argument, NULL, 'f'},
-	{"language", required_argument, NULL, 'l'},
-	{"list-languages", no_argument, NULL, 'L'},
-        {"help", no_argument, NULL, 'h'},
-        {NULL, 0, NULL, 0}
+        	{"all", no_argument, NULL, 'a'},
+        	{"sort", no_argument, NULL, 's'},
+        	{"font", no_argument, NULL, 'f'},
+		{"language", required_argument, NULL, 'l'},
+		{"list-languages", no_argument, NULL, 'L'},
+        	{"help", no_argument, NULL, 'h'},
+        	{NULL, 0, NULL, 0}
     	};
     	
 	
@@ -461,7 +480,6 @@ int main(int argc, char *argv[]){
 		return -1;
 	}
 	if(param_mode){
-		//printf("k_optind=%d, argc=%d, p_index=%d, value of p_index=%s\n", k_optind, argc, p_index, argv[p_index]);
 		if(argv[p_index + 1] == NULL){
 			printf("no fontconfig parameters entered after using :: separator\n");
 			return 1;	
@@ -489,9 +507,6 @@ int main(int argc, char *argv[]){
 			exit(EXIT_FAILURE);
 		}
 		k_optind++;
-		//printf("k_optind: %d, characters: %s\n", k_optind, argv[k_optind]);
-		//printf("argc: %d, k_optind: %d\n", argc, k_optind);
-		//input_char = argv[k_optind];
 		if(param_mode){
 			for (int i = k_optind; i < p_index; i++) {
 				strcat(input_char, argv[i]);
@@ -510,7 +525,6 @@ int main(int argc, char *argv[]){
                 }
 	}
 	else{
-		//input_char = argv[k_optind];
 		if(param_mode){
                         for (int i = k_optind; i < p_index; i++) {
                                 strcat(input_char, argv[i]);
@@ -574,6 +588,25 @@ int main(int argc, char *argv[]){
 			}
 			
 		}
+		// NOTE: Handling raw unicode values (0x...) doesn't easily support Variation Selectors logic 
+		// unless the input format explicitly supports it (e.g. 0x260E 0xFE0F).
+		// For now, assuming raw hex input is a single character as per original code.
+		char *endptr;
+		unicodepoint = strtol(input_char, &endptr, 16);
+		if (endptr == input_char || *endptr != '\0' || unicodepoint < 0 || unicodepoint > (hexBool ? 0x7FFFFFFF : 0x10FFFF)) {
+			printf("invalid unicodepoint\n");
+			return 1;
+		}
+		// Pass 0 as vs_codepoint for direct hex input
+		mystringList = whichfont(unicodepoint, 0, argv, p_index, ops, fontfamily);
+		int n = 0;
+		while (mystringList[n]) {
+			printf("%s", mystringList[n]);
+			free(mystringList[n]);
+			n++;
+		}
+		free(mystringList);
+		return 0;
 	}	
 	else
 	{
@@ -589,25 +622,46 @@ int main(int argc, char *argv[]){
 					fprintf(stderr, "Error: unexpected end of string\n");
 					return 1;
 				}
-				char **mystringList = whichfont((unsigned int) wc, argv, p_index, ops, fontfamily);
+				
+				// Lookahead for Variation Selector (U+FE0F)
+				wchar_t next_wc = 0;
+				int next_count = 0;
+				if (*(p + count)) {
+					next_count = mbtowc(&next_wc, p + count, MB_CUR_MAX);
+				}
+				long int vs_val = 0;
+				if (next_wc == 0xFE0F) {
+					vs_val = 0xFE0F;
+				}
+				
+				char **mystringList = whichfont((unsigned int) wc, vs_val, argv, p_index, ops, fontfamily);
 				printf("\n");
-				if (!iswprint((wint_t)wc)) {
-					char* charString = wcharToString((unsigned int)wc);
-					printf("\"%s\" ", charString);
-                			free(charString);
+				if (vs_val) {
+					printf("'<U+%04X> + <U+%04X>'  ->  \" %lc%lc \"\n", (unsigned int)wc, (unsigned int)vs_val, wc, (wchar_t)vs_val);
+					p += (count + next_count);
 				}
-				else{
-					printf("\"%lc\" ", wc);
+				else {
+					if (!iswprint((wint_t)wc)) {
+						char* charString = wcharToString((unsigned int)wc);
+						printf("\"%s\" ", charString);
+						free(charString);
+					}
+					else {
+						printf("\"%lc\" ", wc);
+					}
+					printf("<U+%04X>\n", (unsigned int)wc);
+					p += count;
 				}
-				printf("<U+%04X>\n",(unsigned int) wc);
+			        	
 				int m = 0;
-				while (mystringList[m]!=NULL) {
-					printf("%s", mystringList[m]);
-					free(mystringList[m]);
-					m++;
+				if(mystringList) {
+					while (mystringList[m]!=NULL) {
+						printf("%s", mystringList[m]);
+						free(mystringList[m]);
+						m++;
+					}
+					free(mystringList);
 				}
-				free(mystringList);
-				p += count;
 			}
 			return 0;
 		}
@@ -624,7 +678,18 @@ int main(int argc, char *argv[]){
 				fprintf(stderr, "Error: unexpected end of string\n");
 				return 1;
 			}
-			mystringList = whichfont((unsigned int) wc, argv, p_index, ops, fontfamily);
+			
+			// Lookahead for Variation Selector
+			wchar_t next_wc = 0;
+			int next_count = 0;
+			if (*(p + count)) {
+				next_count = mbtowc(&next_wc, p + count, MB_CUR_MAX);
+			}
+			long int vs_val = 0;
+			if (next_wc == 0xFE0F) {
+				vs_val = 0xFE0F;
+			}
+			mystringList = whichfont((unsigned int) wc, vs_val, argv, p_index, ops, fontfamily);
 			
 			if (mystringListCopy)
 			{
@@ -636,46 +701,46 @@ int main(int argc, char *argv[]){
 					}
 				}
 				if(!areEqual){
-					for (int i = 0; i < wcCount; i++) {
-        					printf("\n");
-        					/*
-						if (!iswprint((wint_t)wcList[i])) {
-							//printf("\"not a printable character\" ");
-							printf("\"\\x%02X\" ", (unsigned int)wc);
-						}
-						else{
-							printf("\"%lc\" ", wcList[i]);
-						}
-						*/
-						if (!iswprint((wint_t)wcList[i])) {
-							char* charString = wcharToString((unsigned int)wcList[i]);
-							printf("\"%s\" ", charString);
-							free(charString);
-						}
-						else{
-							printf("\"%lc\" ", wcList[i]);
-						}
-						printf("<U+%04X>",(unsigned int) wcList[i]);
-    					}
 					printf("\n");
+					for (int i = 0; i < wcCount; i++) {
+						if (i + 1 < wcCount && wcList[i+1] == 0xFE0F) {
+							 printf("'<U+%04X> + <U+%04X>'  ->  \" %lc%lc \"\n", 
+								   (unsigned int)wcList[i], 
+								   (unsigned int)wcList[i+1], 
+								   wcList[i], wcList[i+1]);
+							 i++;
+						} else {
+							if (!iswprint((wint_t)wcList[i])) {
+								char* charString = wcharToString((unsigned int)wcList[i]);
+								printf("\"%s\" ", charString);
+								free(charString);
+							} else {
+								printf("\"%lc\" ", wcList[i]);
+							}
+							printf("<U+%04X>\n",(unsigned int) wcList[i]);
+						}
+					}
 					int m = 0;
 					while (mystringListCopy[m]) {
 						printf("%s", mystringListCopy[m]);
 						free(mystringListCopy[m]);
 						m++;
 					}
-					free(mystringListCopy[m]);
 					free(wcList);
-					wcList = NULL;
-					wcCount = 0;
 					wcList = (wchar_t*) malloc(100 * sizeof(wchar_t));
+					wcCount = 0;
 					int stringCount = 0;
-					mystringListCopy = realloc(mystringListCopy, (stringCount + 1) * sizeof(char *));
+					if (mystringListCopy) free(mystringListCopy); // Avoid double free/leak
+					mystringListCopy = NULL;
 					while (mystringList[stringCount]) {
+						mystringListCopy = realloc(mystringListCopy, (stringCount + 1) * sizeof(char *));
 						mystringListCopy[stringCount] = strdup(mystringList[stringCount]);
 						stringCount++;
 					}
-					mystringListCopy[stringCount] = NULL;
+					if(mystringListCopy){
+						mystringListCopy = realloc(mystringListCopy, (stringCount + 1) * sizeof(char *));
+						mystringListCopy[stringCount] = NULL;
+					}
 				}
 			}
 			else{
@@ -685,48 +750,56 @@ int main(int argc, char *argv[]){
 					mystringListCopy[stringCount] = strdup(mystringList[stringCount]);
 					stringCount++;
 				}
-				mystringListCopy[stringCount] = NULL;
+				if(mystringListCopy){
+					mystringListCopy = realloc(mystringListCopy, (stringCount + 1) * sizeof(char *));
+					mystringListCopy[stringCount] = NULL;
+				}
 			}
 			wcList[wcCount++] = wc;
-			p += count;
+			if (vs_val) {
+				wcList[wcCount++] = (wchar_t)vs_val;
+				p += (count + next_count);
+			} else {
+				p += count;
+			}
+			int m = 0;
+			while (mystringList[m]) {
+				free(mystringList[m]);
+				m++;
+			}
+			free(mystringList);
 		}
 		printf("\n");
 		for (int i = 0; i < wcCount; i++) {
-			if (!iswprint((wint_t)wcList[i])) {
-				char* charString = wcharToString((unsigned int)wcList[i]);
-				printf("\"%s\" ", charString);
-				free(charString);
+			if (i + 1 < wcCount && wcList[i+1] == 0xFE0F) {
+				printf("'<U+%04X> + <U+%04X>'  ->  \" %lc%lc \"\n", 
+					(unsigned int)wcList[i], 
+					(unsigned int)wcList[i+1], 
+					wcList[i], wcList[i+1]);
+				i++;
 			}
-			else{
-				printf("\"%lc\" ", wcList[i]);
+			else {
+				if (!iswprint((wint_t)wcList[i])) {
+					char* charString = wcharToString((unsigned int)wcList[i]);
+					printf("\"%s\" ", charString);
+					free(charString);
+				} else {
+					printf("\"%lc\" ", wcList[i]);
+				}
+				printf("<U+%04X>\n",(unsigned int) wcList[i]);
 			}
-			printf("<U+%04X>\n",(unsigned int) wcList[i]);
-		}
+		}	
 		int m = 0;
-		while (mystringListCopy[m]) {
-			printf("%s", mystringListCopy[m]);
-			free(mystringListCopy[m]);
-			m++;
+		if(mystringListCopy){
+			while (mystringListCopy[m]) {
+				printf("%s", mystringListCopy[m]);
+				free(mystringListCopy[m]);
+				m++;
+			}
+			free(mystringListCopy);
 		}
-		free(mystringList);
-		free(mystringListCopy);
 		free(wcList);
 		return 0;
 	}
-
-	char *endptr;
-	unicodepoint = strtol(input_char, &endptr, 16);
-	if (endptr == input_char || *endptr != '\0' || unicodepoint < 0 || unicodepoint > (hexBool ? 0x7FFFFFFF : 0x10FFFF)) {
-		printf("invalid unicodepoint\n");
-		return 1;
-	}
-	mystringList = whichfont(unicodepoint, argv, p_index, ops, fontfamily);
-	int n = 0;
-	while (mystringList[n]) {
-		printf("%s", mystringList[n]);
-		free(mystringList[n]);
-		n++;
-	}
-	free(mystringList);
 	return 0;
 }
