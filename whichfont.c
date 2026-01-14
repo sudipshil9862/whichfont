@@ -55,6 +55,20 @@ const char *valid_langs[] = {
 	NULL
 };
 
+bool is_likely_emoji(long int cp) {
+    // original emoji blocks (SMP - Plane 1)
+    // Covers all modern emojis (faces, food, animals, transport)
+    if (cp >= 0x1F000 && cp <= 0x1FFFF) return true;
+    if (cp >= 0x2600 && cp <= 0x26FF) return true;
+    if (cp >= 0x2700 && cp <= 0x27BF) return true;//dinfbats
+    if (cp >= 0x2B50 && cp <= 0x2B55) return true; // geomatric shape extended
+    if (cp >= 0x2300 && cp <= 0x23FF) return true;
+    if (cp >= 0x1F000 && cp <= 0x1F0FF) return true;
+    if (cp >= 0x1F100 && cp <= 0x1F1FF) return true;  // enclosed alphanumeric
+
+    return false;
+}
+
 
 char** whichfont(long int unicodepoint, long int vs_codepoint, char* argv[], int p_index, int ops, const char* fontfamily){
 	FcPattern *pattern;
@@ -96,7 +110,8 @@ char** whichfont(long int unicodepoint, long int vs_codepoint, char* argv[], int
     		FcPatternAddString(pattern, FC_FAMILY, (FcChar8*)"sans-serif");
     	}
 
-	if (vs_codepoint == 0xFE0F || unicodepoint >= 0x1F000) {
+	//if (vs_codepoint == 0xFE0F || unicodepoint >= 0x1F000) {
+	if (vs_codepoint == 0xFE0F || is_likely_emoji(unicodepoint)) {
 		FcPatternAddBool(pattern, FC_COLOR, FcTrue);	
 	}
 
@@ -118,17 +133,11 @@ char** whichfont(long int unicodepoint, long int vs_codepoint, char* argv[], int
 		int j;
 		for (j = 0; j < font_set->nfont; j++)
 		{
-			//filter out fonts that don't actually support the requested char.
-			//FcFontSort returns a prioritized fontlist that contain the glyph including fallbacks.
 			FcCharSet *font_cs;
 			if (FcPatternGetCharSet(font_set->fonts[j], FC_CHARSET, 0, &font_cs) == FcResultMatch) {
 				if (!FcCharSetHasChar(font_cs, (FcChar32)unicodepoint)) {
 					continue;
 				}
-				if (vs_codepoint == 0xFE0F) {
-					FcPatternAddBool(pattern, FC_COLOR, FcTrue);	
-				}
-
 			}
 			
 			FcPattern  *font_pattern;
