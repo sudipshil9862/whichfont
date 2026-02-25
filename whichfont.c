@@ -10,6 +10,9 @@
 #include<locale.h>
 #include<unistd.h>
 #include<getopt.h>
+#include <glib.h>
+#include <pango/pango.h>
+#include <pango/pangoft2.h>
 
 enum {
 		OP_NONE = 0,
@@ -292,6 +295,113 @@ char* wcharToString(int charvalue){
 	
 }
 
+
+void print_segment_chars(const char *text, int length) {
+    long char_count = g_utf8_strlen(text, length);
+
+    if (char_count > 1) {
+        printf("%.*s\n", length, text);
+        return;
+    }
+
+    wchar_t wc;
+    int i = 0;
+    while(i < length) {
+        int count = mbtowc(&wc, text + i, length - i);
+        if (count <= 0) break;
+
+        wchar_t next_wc = 0;
+        int next_count = 0;
+        if (i + count < length) {
+            next_count = mbtowc(&next_wc, text + i + count, length - (i + count));
+        }
+
+        if (next_wc == 0xFE0F) {
+            printf("'<U+%04X> + <U+%04X>' -> \" %lc%lc \" ", (unsigned int)wc, (unsigned int)next_wc, wc, next_wc);
+            i += next_count;
+        } else {
+             if (!iswprint((wint_t)wc)) {
+                char* s = wcharToString((unsigned int)wc);
+                printf("\"%s\" ", s);
+                free(s);
+            } else {
+                printf("\"%lc\" ", wc);
+            }
+            printf("<U+%04X> ", (unsigned int)wc);
+        }
+        i += count;
+    }
+    printf("\n");
+}
+
+
+void resolve_via_pango(const char *input_text, const char *fontfamily, const char *lang_code, char* argv[], int p_index) {
+    PangoFontMap *fontmap = pango_ft2_font_map_new();
+    PangoContext *context = pango_font_map_create_context(fontmap);
+    PangoAttrList *attrs = pango_attr_list_new();
+    if (fontfamily) {
+        PangoAttribute *attr_fam = pango_attr_family_new(fontfamily);
+        pango_attr_list_insert(attrs, attr_fam);
+    } 
+    if (lang_code) {
+        PangoLanguage *lang = pango_language_from_string(lang_code);
+        PangoAttribute *attr_lang = pango_attr_language_new(lang);
+        pango_attr_list_insert(attrs, attr_lang);
+        pango_context_set_language(context, lang);
+    }
+    GList *items = pango_itemize(context, input_text, 0, strlen(input_text), attrs, NULL);
+    GList *l;
+    for (l = items; l; l = l->next) {
+        PangoItem *item = (PangoItem *)l->data;
+        const char *segment_text = input_text + item->offset;
+        int segment_len = item->length;
+        
+        print_segment_chars(segment_text, segment_len);
+
+        PangoFont *font = item->analysis.font;
+        if (font) {
+            PangoFontDescription *desc = pango_font_describe(font);
+            char *desc_str = pango_font_description_to_string(desc);
+            g_free(desc_str);
+            pango_font_description_free(desc);
+            if (PANGO_IS_FC_FONT(font)) {
+                PangoFcFont *fc_font = PANGO_FC_FONT(font);
+                FcPattern *pattern = pango_fc_font_get_pattern(fc_font);
+                if (pattern) {
+                    FcObjectSet *os = 0;
+                    const FcChar8 *format = NULL;
+                     if(p_index != -1) {
+                        while (argv[++p_index]) {
+                            if (!os) os = FcObjectSetCreate ();
+                            FcObjectSetAdd (os, argv[p_index]);
+                        }
+                        p_index -= (p_index - (p_index));
+                    }
+                    if (!format) {
+                        if (os) format = (const FcChar8 *) "%{=unparse}\n";
+                        else format = (const FcChar8 *) "%{=fcmatch}\n";
+                    }
+                    FcPattern *filtered_pat = os ? FcPatternFilter(pattern, os) : FcPatternDuplicate(pattern);
+                    FcChar8 *s = FcPatternFormat(filtered_pat, format);
+                    if (s) {
+                        printf("%s", s);
+                        FcStrFree(s);
+                    }
+                    FcPatternDestroy(filtered_pat);
+                    if (os) FcObjectSetDestroy(os);
+                }
+            }
+        } else {
+            printf("No font found for this segment.\n");
+        }
+    }
+    g_list_free_full(items, (GDestroyNotify)pango_item_free);
+    pango_attr_list_unref(attrs);
+    g_object_unref(context);
+    g_object_unref(fontmap);
+}
+
+
 int main(int argc, char *argv[]){
 	if (argc < 2){
 		printf("Need argument UTF-8 character or unicode\n");
@@ -301,15 +411,12 @@ int main(int argc, char *argv[]){
 	
 	setlocale(LC_ALL, "");
 	char *input_char;
-	input_char = malloc(1024);  // or dynamically calculate the needed size
+	input_char = malloc(4096);
 	if (!input_char) {
 	    fprintf(stderr, "Memory allocation failed for input_char\n");
 	    exit(EXIT_FAILURE);
 	}
 	input_char[0] = '\0';  // Initialize as empty string before strcat
-			       //
-	char **mystringList = NULL;
-	char **mystringListCopy = NULL;
 	char *fontfamily = NULL;
 	
 	int ops = OP_NONE;
@@ -432,383 +539,104 @@ int main(int argc, char *argv[]){
 	
 	int k_optind;
 	k_optind = optind;
-	if (ops == OP_LANGUAGE) {
-	    if (fontfamily == NULL) {
-			printf("Please provide a language code with --language option\n");
-			return 1;
-		}
-		int is_valid_lang = 0;
-		for (int i = 0; valid_langs[i] != NULL; i++) {
-			if (strcmp(valid_langs[i], fontfamily) == 0) {
-				is_valid_lang = 1;
-				break;
-			}
-		}
-		if (!is_valid_lang) {
-			printf("Invalid language code used\n");
-			printf("Use --list-languages to see the supported list\n");
-			return 0;
-		}
-		FcPattern *pattern = FcPatternCreate();
-		FcPatternAddString(pattern, FC_LANG, (FcChar8 *)fontfamily);
-		FcConfigSubstitute(NULL, pattern, FcMatchPattern);
-		FcDefaultSubstitute(pattern);
-		
-		FcResult result;
-		FcPattern *match = FcFontMatch(NULL, pattern, &result);
-		if (!match) {
-			printf("No font installed for (%s) language\n", fontfamily);
-			FcPatternDestroy(pattern);
-			return 0;
-		}
-		FcLangSet *available_langs;
-		if (FcPatternGetLangSet(match, FC_LANG, 0, &available_langs) == FcResultMatch) {
-			FcLangSet *requested_lang = FcLangSetCreate();
-			FcLangSetAdd(requested_lang, (const FcChar8 *) fontfamily);
-			if (!FcLangSetContains(available_langs, requested_lang)) {
-				printf("No font installed for (%s) language\n", fontfamily);
-				FcLangSetDestroy(requested_lang);
-				FcPatternDestroy(match);
-				FcPatternDestroy(pattern);
-				return 0;
-			}
-			FcLangSetDestroy(requested_lang);
-		}
-		FcChar8 *family = NULL;
-		if (FcPatternGetString(match, FC_FAMILY, 0, &family) == FcResultMatch) {
-			printf("%s\n", family);
-		} else {
-			printf("Font found but family name could not be retrieved\n");
-		}
-		FcPatternDestroy(match);
-		FcPatternDestroy(pattern);
-		return 0;
-	}
-	if(k_optind < argc && argv[k_optind] != NULL && strcmp(argv[k_optind], "::") == 0){
-		printf("no input characters to render\n");
-		return -1;
-	}
-	if(param_mode){
-		if(argv[p_index + 1] == NULL){
-			printf("no fontconfig parameters entered after using :: separator\n");
-			return 1;	
+	if (ops == OP_FONTFAMILY) {
+		if(k_optind < argc) {
+		     fontfamily = strdup(argv[k_optind]);
+		     k_optind++;
 		}
 	}
+	int end_loop = param_mode ? p_index : argc;
+	for(int i = k_optind; i < end_loop; i++){
+		strcat(input_char, argv[i]);
+		if(i != end_loop - 1) strcat(input_char, " ");
+	}
+	if (strlen(input_char) == 0 && ops != OP_LANGUAGE) {
+		printf("No input text provided.\n");
+		return 1;
+	}
+	bool hexBool = (strlen(input_char) >= 2 && input_char[0] == '0' && (input_char[1] == 'x' || input_char[1] == 'X'));
+	bool unicodeBool = (strlen(input_char) >= 2 && (input_char[0] == 'U' || input_char[0] == 'u') && input_char[1] == '+');
 	
-	if(ops == OP_FONTFAMILY){
-		if(argc == k_optind){
-			printf("input character or unicode is needed\n");
-			return 1;
-		}
-		if(argc == k_optind+1){
-			printf("please specify both fontname and unicode\n");
-			return 1;
-		}
-	}
-	
-	if(ops == OP_FONTFAMILY){
-		fontfamily = (char *)malloc(strlen(argv[k_optind]) + 1); // +1 for the null terminator
-		if (fontfamily != NULL) {
-			strcpy(fontfamily, argv[k_optind]);
-		} else {
-			// handling memory allocation failure
-			fprintf(stderr, "Memory allocation failed for fontfamily.\n");
-			exit(EXIT_FAILURE);
-		}
-		k_optind++;
-		if(param_mode){
-			for (int i = k_optind; i < p_index; i++) {
-				strcat(input_char, argv[i]);
-				if (i != p_index - 1){
-					strcat(input_char, " ");
-				}
-			}
-		}
-		else {
-			for(int i = k_optind; i < argc; i++){
-				strcat(input_char, argv[i]);
-				if(i != argc - 1){
-					strcat(input_char, " ");
-				}
-			}
-                }
-	}
-	else{
-		if(param_mode){
-                        for (int i = k_optind; i < p_index; i++) {
-                                strcat(input_char, argv[i]);
-                                if (i != p_index - 1){
-                                        strcat(input_char, " ");
-                                }
-                        }
-                }
-		else {
-			for(int i = k_optind; i < argc; i++){
-				strcat(input_char, argv[i]);
-				if(i != argc - 1){
-					strcat(input_char, " ");
-				}
-			}
-		}
-	}
-
-	printf("input_char: %s\n", input_char);
-
-	int len_inputchar = strlen(input_char);
-
-	int has_digit = 0;
-	int has_letter = 0;
-	if(len_inputchar > 1){
+	bool pureHexBool = (strlen(input_char) >= 4);
+	if (pureHexBool) {
 		for (int i = 0; input_char[i] != '\0'; i++) {
-			if (isdigit(input_char[i])) {
-				has_digit = 1;
-			} else if (isalpha(input_char[i])) {
-				has_letter = 1;
+			if (!isxdigit(input_char[i])) {
+			    pureHexBool = false;
+			    break;
 			}
 		}
-	}
-
-	bool hexBool =  len_inputchar >= 2 && (input_char[0] == '0' && (input_char[1] == 'x' || input_char[1] == 'X'));
-	bool unicodeBool = len_inputchar >= 2 && input_char[1] == '+' && (input_char[0] == 'U' || input_char[0] == 'u');
-	long int unicodepoint;
-	if ((hexBool || unicodeBool) || (has_digit==1 && has_letter==0)){
-		if(hexBool || unicodeBool){
-			input_char += 2;
-			int len_input = strlen(input_char);
-
-			if (len_input == 0) { //when input_char=0x or input_char=U+ then it should return false
-				printf("empty input argument\n");
-				return 0;
-			}
-
-			if (hexBool)
-			{
-				//input is hexadecimal
-				if(len_input > 8){
-					printf("invalid hexadecimal value\n");
-					return 0;
-				}
-				for (int i = 0; i < len_input; i++) {
-					if (!isxdigit(input_char[i])) {
-						printf("invalid hexadecimal value\n");
-						return 0;
-					}
-				}
-			}
-			
+	}	
+	
+	if (hexBool || unicodeBool || pureHexBool) {
+		char *ptr;
+		if (hexBool || unicodeBool) {
+			ptr = input_char + 2;
+		} else {
+			ptr = input_char;
 		}
-		// NOTE: Handling raw unicode values (0x...) doesn't easily support Variation Selectors logic 
-		// unless the input format explicitly supports it (e.g. 0x260E 0xFE0F).
-		// For now, assuming raw hex input is a single character as per original code.
+
 		char *endptr;
-		unicodepoint = strtol(input_char, &endptr, 16);
-		if (endptr == input_char || *endptr != '\0' || unicodepoint < 0 || unicodepoint > (hexBool ? 0x7FFFFFFF : 0x10FFFF)) {
+		long int cp = strtol(ptr, &endptr, 16);
+
+		if (*endptr != '\0') {
 			printf("invalid unicodepoint\n");
 			return 1;
 		}
-		// Pass 0 as vs_codepoint for direct hex input
-		mystringList = whichfont(unicodepoint, 0, argv, p_index, ops, fontfamily);
-		int n = 0;
-		while (mystringList[n]) {
-			printf("%s", mystringList[n]);
-			free(mystringList[n]);
-			n++;
+
+		if (ptr == endptr) {
+			printf("invalid unicodepoint\n");
+			return 1;
 		}
-		free(mystringList);
-		return 0;
-	}	
-	else
-	{
-		if(ops == OP_ALL || ops == OP_SORT){
-			wchar_t wc;
-			char* p = input_char;
-			while (*p) {
-				int count = mbtowc(&wc, p, MB_CUR_MAX);
-				if (count < 0) {
-					fprintf(stderr, "Error: invalid multibyte sequence\n");
-					return 1;
-				} else if (count == 0) {
-					fprintf(stderr, "Error: unexpected end of string\n");
-					return 1;
-				}
-				
-				// Lookahead for Variation Selector (U+FE0F)
-				wchar_t next_wc = 0;
-				int next_count = 0;
-				if (*(p + count)) {
-					next_count = mbtowc(&next_wc, p + count, MB_CUR_MAX);
-				}
-				long int vs_val = 0;
-				if (next_wc == 0xFE0F) {
-					vs_val = 0xFE0F;
-				}
-				
-				char **mystringList = whichfont((unsigned int) wc, vs_val, argv, p_index, ops, fontfamily);
-				printf("\n");
-				if (vs_val) {
-					printf("'<U+%04X> + <U+%04X>'  ->  \" %lc%lc \"\n", (unsigned int)wc, (unsigned int)vs_val, wc, (wchar_t)vs_val);
-					p += (count + next_count);
-				}
-				else {
-					if (!iswprint((wint_t)wc)) {
-						char* charString = wcharToString((unsigned int)wc);
-						printf("\"%s\" ", charString);
-						free(charString);
-					}
-					else {
-						printf("\"%lc\" ", wc);
-					}
-					printf("<U+%04X>\n", (unsigned int)wc);
-					p += count;
-				}
-			        	
-				int m = 0;
-				if(mystringList) {
-					while (mystringList[m]!=NULL) {
-						printf("%s", mystringList[m]);
-						free(mystringList[m]);
-						m++;
-					}
-					free(mystringList);
-				}
+
+		if (cp < 0 || cp > 0x10FFFF) {
+			printf("Invalid Unicode Code Point: U+%lX (Values must be between 0 and 0x10FFFF)\n", cp);
+			return 1;
+		}
+
+		if (ops == OP_ALL || ops == OP_SORT) {
+			char **res = whichfont(cp, 0, argv, p_index, ops, fontfamily);
+			if(res) {
+				int n=0; while(res[n]) { printf("%s", res[n]); free(res[n]); n++; }
+				free(res);
 			}
 			return 0;
 		}
-		wchar_t wc;
-		wchar_t* wcList = (wchar_t*) malloc(100 * sizeof(wchar_t));
-		int wcCount = 0;
-		char* p = input_char;
-		while (*p) {
-			int count = mbtowc(&wc, p, MB_CUR_MAX);
-			if (count < 0) {
-				fprintf(stderr, "Error: invalid multibyte sequence\n");
-				return 1;
-			} else if (count == 0) {
-				fprintf(stderr, "Error: unexpected end of string\n");
-				return 1;
-			}
-			
-			// Lookahead for Variation Selector
-			wchar_t next_wc = 0;
-			int next_count = 0;
-			if (*(p + count)) {
-				next_count = mbtowc(&next_wc, p + count, MB_CUR_MAX);
-			}
-			long int vs_val = 0;
-			if (next_wc == 0xFE0F) {
-				vs_val = 0xFE0F;
-			}
-			mystringList = whichfont((unsigned int) wc, vs_val, argv, p_index, ops, fontfamily);
-			
-			if (mystringListCopy)
-			{
-				int areEqual = 1; // Assume they are equal
-				for (int i = 0; mystringList[i] != NULL || mystringListCopy[i] != NULL; i++) {
-					if (strcmp(mystringList[i], mystringListCopy[i]) != 0) {
-						areEqual = 0; // Not equal
-						break;
-					}
-				}
-				if(!areEqual){
-					printf("\n");
-					for (int i = 0; i < wcCount; i++) {
-						if (i + 1 < wcCount && wcList[i+1] == 0xFE0F) {
-							 printf("'<U+%04X> + <U+%04X>'  ->  \" %lc%lc \"\n", 
-								   (unsigned int)wcList[i], 
-								   (unsigned int)wcList[i+1], 
-								   wcList[i], wcList[i+1]);
-							 i++;
-						} else {
-							if (!iswprint((wint_t)wcList[i])) {
-								char* charString = wcharToString((unsigned int)wcList[i]);
-								printf("\"%s\" ", charString);
-								free(charString);
-							} else {
-								printf("\"%lc\" ", wcList[i]);
-							}
-							printf("<U+%04X>\n",(unsigned int) wcList[i]);
-						}
-					}
-					int m = 0;
-					while (mystringListCopy[m]) {
-						printf("%s", mystringListCopy[m]);
-						free(mystringListCopy[m]);
-						m++;
-					}
-					free(wcList);
-					wcList = (wchar_t*) malloc(100 * sizeof(wchar_t));
-					wcCount = 0;
-					int stringCount = 0;
-					if (mystringListCopy) free(mystringListCopy); // Avoid double free/leak
-					mystringListCopy = NULL;
-					while (mystringList[stringCount]) {
-						mystringListCopy = realloc(mystringListCopy, (stringCount + 1) * sizeof(char *));
-						mystringListCopy[stringCount] = strdup(mystringList[stringCount]);
-						stringCount++;
-					}
-					if(mystringListCopy){
-						mystringListCopy = realloc(mystringListCopy, (stringCount + 1) * sizeof(char *));
-						mystringListCopy[stringCount] = NULL;
-					}
-				}
-			}
-			else{
-				int stringCount = 0;
-				while (mystringList[stringCount]) {
-					mystringListCopy = realloc(mystringListCopy, (stringCount + 1) * sizeof(char *));
-					mystringListCopy[stringCount] = strdup(mystringList[stringCount]);
-					stringCount++;
-				}
-				if(mystringListCopy){
-					mystringListCopy = realloc(mystringListCopy, (stringCount + 1) * sizeof(char *));
-					mystringListCopy[stringCount] = NULL;
-				}
-			}
-			wcList[wcCount++] = wc;
-			if (vs_val) {
-				wcList[wcCount++] = (wchar_t)vs_val;
-				p += (count + next_count);
-			} else {
-				p += count;
-			}
-			int m = 0;
-			while (mystringList[m]) {
-				free(mystringList[m]);
-				m++;
-			}
-			free(mystringList);
+		
+		char utf8_buf[8] = {0};
+		if (wctomb(utf8_buf, (wchar_t)cp) == -1) {
+			printf("Could not convert U+%lX to UTF-8\n", cp);
+			return 1;
 		}
-		printf("\n");
-		for (int i = 0; i < wcCount; i++) {
-			if (i + 1 < wcCount && wcList[i+1] == 0xFE0F) {
-				printf("'<U+%04X> + <U+%04X>'  ->  \" %lc%lc \"\n", 
-					(unsigned int)wcList[i], 
-					(unsigned int)wcList[i+1], 
-					wcList[i], wcList[i+1]);
-				i++;
-			}
-			else {
-				if (!iswprint((wint_t)wcList[i])) {
-					char* charString = wcharToString((unsigned int)wcList[i]);
-					printf("\"%s\" ", charString);
-					free(charString);
-				} else {
-					printf("\"%lc\" ", wcList[i]);
-				}
-				printf("<U+%04X>\n",(unsigned int) wcList[i]);
-			}
-		}	
-		int m = 0;
-		if(mystringListCopy){
-			while (mystringListCopy[m]) {
-				printf("%s", mystringListCopy[m]);
-				free(mystringListCopy[m]);
-				m++;
-			}
-			free(mystringListCopy);
-		}
-		free(wcList);
+		resolve_via_pango(utf8_buf, fontfamily, NULL, argv, p_index);
 		return 0;
 	}
-	return 0;
+		
+	if (ops == OP_ALL || ops == OP_SORT) {
+		wchar_t wc;
+		char* p = input_char;
+		while (*p) {
+		    int count = mbtowc(&wc, p, MB_CUR_MAX);
+		    if(count <=0) break;
+		    wchar_t next_wc = 0;
+		    int next_count = 0;
+		    if (*(p+count)) next_count = mbtowc(&next_wc, p+count, MB_CUR_MAX);
+		    long int vs = (next_wc == 0xFE0F) ? 0xFE0F : 0;
+		    char **res = whichfont((long)wc, vs, argv, p_index, ops, fontfamily);
+		    printf("\nChar: %lc (U+%04X)\n", wc, (unsigned int)wc);
+		    if(res) {
+			int n=0; while(res[n]) { printf("%s", res[n]); free(res[n]); n++; }
+			free(res);
+		    }
+		    p += count;
+		    if(vs) p += next_count;
+		}
+	}
+	else {
+		char* lang = (ops == OP_LANGUAGE) ? fontfamily : NULL;
+		char* fam = (ops == OP_FONTFAMILY) ? fontfamily : NULL;
+		resolve_via_pango(input_char, fam, lang, argv, p_index);
+	}
+	free(input_char);
+	if(fontfamily && ops != OP_LANGUAGE) free(fontfamily);
+	return 0;	
 }

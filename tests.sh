@@ -90,25 +90,24 @@ echo >> "$error_file"
 for test_case in "${test_cases[@]}"
 do
     command_output=$(./.builddir/whichfont $test_case 2>tmp_stderr)
+    command_output=$(eval "./.builddir/whichfont $test_case" 2>tmp_stderr)
     exit_status=$?
 
-    #segmentation fault (exit code 139)
     if [ $exit_status -eq 139 ]; then
         echo "input: ./.builddir/whichfont $test_case" >> "$error_file"
         echo "error: Segmentation fault (core dumped)" >> "$error_file"
-        echo "-------------------------------------------------------------------------------------------------------------------------------------" >> "$error_file"
+        echo "---------------------------------------------------------" >> "$error_file"
         had_error=1
     else
-        #echo "input: ./.builddir/whichfont $test_case" >> "$output_file"
-        #output:--
-	echo "$command_output" >> "$output_file"
-        echo "-------------------------------------------------------------------------------------------------------------------------------------" >> "$output_file"
+        echo "Input: $test_case" >> "$output_file"
+        echo "$command_output" >> "$output_file"
+        echo "---------------------------------------------------------" >> "$output_file"
 
         error_output=$(<tmp_stderr)
         if [ -n "$error_output" ]; then
             echo "input: ./.builddir/whichfont $test_case" >> "$error_file"
             echo "error: $error_output" >> "$error_file"
-            echo "-------------------------------------------------------------------------------------------------------------------------------------" >> "$error_file"
+            echo "------------------------------------------------------" >> "$error_file"
             had_error=1
         fi
     fi
