@@ -16,7 +16,7 @@ jobs:
       - name: install build dependencies
         run: |
           sudo apt update
-          sudo apt install -y meson ninja-build gcc fontconfig libfontconfig1-dev
+          sudo apt install -y meson ninja-build gcc fontconfig libfontconfig1-dev libglib2.0-dev libpango1.0-dev
 
       - name: make script executable
         run: chmod +x build.sh run.sh tests.sh
