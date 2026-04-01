@@ -339,10 +339,11 @@ void resolve_via_pango(const char *input_text, const char *fontfamily, const cha
     PangoFontMap *fontmap = pango_ft2_font_map_new();
     PangoContext *context = pango_font_map_create_context(fontmap);
     PangoAttrList *attrs = pango_attr_list_new();
-    if (fontfamily) {
-        PangoAttribute *attr_fam = pango_attr_family_new(fontfamily);
-        pango_attr_list_insert(attrs, attr_fam);
-    } 
+    
+    const char *fam_to_use = fontfamily ? fontfamily : "sans-serif";
+    PangoAttribute *attr_fam = pango_attr_family_new(fam_to_use);
+    pango_attr_list_insert(attrs, attr_fam);
+     
     if (lang_code) {
         PangoLanguage *lang = pango_language_from_string(lang_code);
         PangoAttribute *attr_lang = pango_attr_language_new(lang);
@@ -535,6 +536,67 @@ int main(int argc, char *argv[]){
 		return 0;
 	}
 
+	if (ops == OP_LANGUAGE) {
+		if (fontfamily == NULL) {
+			printf("Please provide a language code with --language option\n");
+			return 1;
+		}
+		int is_valid_lang = 0;
+		for (int i = 0; valid_langs[i] != NULL; i++) {
+			if (strcmp(valid_langs[i], fontfamily) == 0) {
+				is_valid_lang = 1;
+				break;
+			}
+		}
+		if (!is_valid_lang) {
+			printf("Invalid language code used\n");
+			printf("Use --list-languages to see the supported list\n");
+			return 0;
+		}
+
+		FcPattern *pattern = FcPatternCreate();
+		FcPatternAddString(pattern, FC_LANG, (FcChar8 *)fontfamily);
+		
+		FcPatternAddString(pattern, FC_FAMILY, (FcChar8 *)"sans-serif");
+
+		FcConfigSubstitute(NULL, pattern, FcMatchPattern);
+		FcDefaultSubstitute(pattern);
+		
+		FcResult result;
+		FcPattern *match = FcFontMatch(NULL, pattern, &result);
+		if (!match) {
+			printf("No font installed for (%s) language\n", fontfamily);
+			FcPatternDestroy(pattern);
+			return 0;
+		}
+
+		FcLangSet *available_langs;
+		if (FcPatternGetLangSet(match, FC_LANG, 0, &available_langs) == FcResultMatch) {
+			FcLangSet *requested_lang = FcLangSetCreate();
+			FcLangSetAdd(requested_lang, (const FcChar8 *) fontfamily);
+			if (!FcLangSetContains(available_langs, requested_lang)) {
+				printf("No font installed for (%s) language\n", fontfamily);
+				FcLangSetDestroy(requested_lang);
+				FcPatternDestroy(match);
+				FcPatternDestroy(pattern);
+				return 0;
+			}
+			FcLangSetDestroy(requested_lang);
+		}
+
+		FcChar8 *family = NULL;
+		if (FcPatternGetString(match, FC_FAMILY, 0, &family) == FcResultMatch) {
+			printf("%s\n", family);
+		} else {
+			printf("Font found but family name could not be retrieved\n");
+		}
+
+		FcPatternDestroy(match);
+		FcPatternDestroy(pattern);
+		free(input_char);
+		free(fontfamily);
+		return 0;
+	}
 	
 	
 	int k_optind;
