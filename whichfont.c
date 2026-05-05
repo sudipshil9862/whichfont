@@ -448,30 +448,33 @@ int main(int argc, char *argv[]){
 	int opt_argc = (p_index == -1) ? argc : p_index;
 	while ((opt = getopt_long(opt_argc, argv, "asful:hL", longopts, NULL)) != -1) {
 	    switch (opt) {
+		case 'h':
+		    ops = OP_HELP;
+		    break;
 		case 'a':
 		    if (ops != OP_NONE) {
-			printf("-a is not acceptable with other options (-s, -f, -l, -L, -h)\n");
+			printf("-a is not acceptable with other options (-s, -f, -l, -L)\n");
 			return 1;
 		    }
 		    ops = OP_ALL;
 		    break;
 		case 's':
 		    if (ops != OP_NONE) {
-			printf("-s is not acceptable with other options (-a, -f, -l, -L, -h)\n");
+			printf("-s is not acceptable with other options (-a, -f, -l, -L)\n");
 			return 1;
 		    }
 		    ops = OP_SORT;
 		    break;
 		case 'f':
 		    if (ops != OP_NONE) {
-			printf("-f is not acceptable with other options (-a, -s, -l, -L, -h)\n");
+			printf("-f is not acceptable with other options (-a, -s, -l, -L)\n");
 			return 1;
 		    }
 		    ops = OP_FONTFAMILY;
 		    break;
 		case 'l':
 		    if (ops != OP_NONE) {
-			printf("-l is not acceptable with other options (-a, -s, -f, -L, -h)\n");
+			printf("-l is not acceptable with other options (-a, -s, -f, -L)\n");
 			return 1;
 		    }
 		    if (optarg == NULL) {
@@ -483,17 +486,10 @@ int main(int argc, char *argv[]){
 		    break;
 		case 'L':
 		    if (ops != OP_NONE) {
-			printf("-L is not acceptable with other options (-a, -s, -f, -l, -h)\n");
+			printf("-L is not acceptable with other options (-a, -s, -f, -l)\n");
 			return 1;
 		    }
 		    ops = OP_LIST_LANGUAGES;
-		    break;
-		case 'h':
-		    if (ops != OP_NONE) {
-			printf("-h is not acceptable with other options (-a, -s, -f, -l, -L)\n");
-			return 1;
-		    }
-		    ops = OP_HELP;
 		    break;
 		case '?':
 		    if (optopt == 'l') {
