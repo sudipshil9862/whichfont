@@ -438,6 +438,18 @@ int main(int argc, char *argv[]){
 	opterr = 0;
 	int p_index = -1;
 	int param_mode = 0;
+
+	// Check for --help/-h first to allow it to override other options
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+			ops = OP_HELP;
+			break;
+		}
+		if (strcmp(argv[i], "::") == 0 || strcmp(argv[i], "--") == 0) {
+			break;
+		}
+	}
+
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "::") == 0 || strcmp(argv[i], "--") == 0) {
 			param_mode = 1;
@@ -446,12 +458,20 @@ int main(int argc, char *argv[]){
 		}
 	}
 	int opt_argc = (p_index == -1) ? argc : p_index;
-	while ((opt = getopt_long(opt_argc, argv, "asful:hL", longopts, NULL)) != -1) {
+
+	// If help was already detected, skip getopt processing
+	if (ops != OP_HELP) {
+		while ((opt = getopt_long(opt_argc, argv, "asful:hL", longopts, NULL)) != -1) {
 	    switch (opt) {
 		case 'h':
+		    if (fontfamily) {
+			free(fontfamily);
+			fontfamily = NULL;
+		    }
 		    ops = OP_HELP;
 		    break;
 		case 'a':
+		    if (ops == OP_HELP) break;
 		    if (ops != OP_NONE) {
 			printf("-a is not acceptable with other options (-s, -f, -l, -L)\n");
 			return 1;
@@ -459,6 +479,7 @@ int main(int argc, char *argv[]){
 		    ops = OP_ALL;
 		    break;
 		case 's':
+		    if (ops == OP_HELP) break;
 		    if (ops != OP_NONE) {
 			printf("-s is not acceptable with other options (-a, -f, -l, -L)\n");
 			return 1;
@@ -466,6 +487,7 @@ int main(int argc, char *argv[]){
 		    ops = OP_SORT;
 		    break;
 		case 'f':
+		    if (ops == OP_HELP) break;
 		    if (ops != OP_NONE) {
 			printf("-f is not acceptable with other options (-a, -s, -l, -L)\n");
 			return 1;
@@ -473,6 +495,7 @@ int main(int argc, char *argv[]){
 		    ops = OP_FONTFAMILY;
 		    break;
 		case 'l':
+		    if (ops == OP_HELP) break;
 		    if (ops != OP_NONE) {
 			printf("-l is not acceptable with other options (-a, -s, -f, -L)\n");
 			return 1;
@@ -485,6 +508,7 @@ int main(int argc, char *argv[]){
 		    fontfamily = strdup(optarg);
 		    break;
 		case 'L':
+		    if (ops == OP_HELP) break;
 		    if (ops != OP_NONE) {
 			printf("-L is not acceptable with other options (-a, -s, -f, -l)\n");
 			return 1;
@@ -500,6 +524,7 @@ int main(int argc, char *argv[]){
 		    }
 		    return 1;
 	    }
+	}
 	}
 	
 	if (ops == OP_HELP) {

@@ -41,10 +41,7 @@ test_cases=(
 
     "-a -s"
     "-a -f"
-    "-a -h"
     "-s -f"
-    "-s -h"
-    "-f -h"
     "-a -l"
 
     "--language ja"
@@ -52,6 +49,25 @@ test_cases=(
 
     "--list-languages"
     "--help"
+
+    "-h"
+    "-h -a"
+    "-a -h"
+    "-h -s"
+    "-s -h"
+    "-h -f"
+    "-f -h"
+    "-h -l fa"
+    "-l fa -h"
+    "-l fa -a -h"
+    "-h -l fa -a"
+    "-a -h -l fa"
+    "--help -a"
+    "-a --help"
+    "--help --language ja"
+    "--language ja --help"
+    "-f 'Noto Sans' -h"
+    "-h -f 'Noto Sans'"
 
     "-f 'Noto Sans Bengali' 0985"
 
